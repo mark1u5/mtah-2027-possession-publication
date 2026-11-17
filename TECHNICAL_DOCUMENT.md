@@ -1,18 +1,13 @@
-# Nausicaa: ball possession from tracking data
+# Ball possession from tracking data
 
-**Team El Chato** · match BAR–ATH · model **Nausicaa** · input: ATD tracking only
-
-**Why "Nausicaa".** In Book VI of Homer's *Odyssey*, the princess Nausicaa plays ball with her companions on the
-beach, the oldest ball game described in Western literature. A stray throw sends the ball into the water, and the
-shout wakes Odysseus. A model that decides, frame by frame, who has the ball and when it is lost seemed to deserve
-her name.
+**Team El Chato** · match BAR–ATH · input: ATD tracking only
 
 | <span class="big">0.761</span><br>Spell-F1 on 10 external matches (our best model without stacking: 0.701) | <span class="big">10 / 10</span><br>External matches improved over that model | <span class="big">ATD only</span><br>No video, no events, no labels of the match | <span class="big">Byte-exact</span><br>Same CSV on Linux ARM and Windows x86 |
 |---|---|---|---|
 
 ## 1. Approach
 
-<img src="FIGDIR/fig1_pipeline.png" width="660">
+<img src="fig/fig1_pipeline.png" width="660">
 
 | Step | What it does | How | Why |
 |---|---|---|---|
@@ -39,6 +34,13 @@ Viterbi decoder sees only the stack output. Frames outside the two halves are wr
 | Restart (throw-in, free kick, corner, kick-off) | The restarting team, from the first touch |
 | Spell shorter than the 5th percentile of the training spells | Not emitted (decoder) |
 | Ball not tracked | **Not** a reason for D by itself |
+
+The rule-based branch uses the team's rule set without one convention that had been read off the public five
+minutes early in the project (dating a direct turnover to the middle of the ball's flight). Removing it changed
+spell-F1 by −0.001 on the benchmark (3/10 matches), and we kept the version that owes nothing to the public window.
+The rules still contain a few physical constants inherited from the team's first rule-based model (players' mean speed
+of 1.40 / 1.90 m/s for stoppages, a reach ratio of 0.95, a contact decay of 0.20 per m/s); their origin is not
+documented.
 
 Robustness was checked against two other conventions (1 s of close control; the provider's own possession channel).
 Which one matches the official ground truth is unknown: this is our largest uncertainty.
@@ -80,10 +82,10 @@ validation.
 
 ## 4. How we got here
 
-Nausicaa was not designed in one go. It is the result of seven stages, each started by a measured weakness of the
+The model was not designed in one go. It is the result of seven stages, each started by a measured weakness of the
 previous one. Unless stated otherwise, every number is spell-F1 on the benchmark of section 3.
 
-<img src="FIGDIR/fig4_historia.png" width="620">
+<img src="fig/fig4_historia.png" width="620">
 
 The dashed line (0.701) is the stage-3 pipeline with refined rules, developed in parallel: our best model without
 stacking, and the reference used throughout this document.
@@ -104,7 +106,7 @@ fix the data instead of adding complexity. Ideas that did not pass their accepta
 
 ## 5. Results on external matches
 
-<img src="FIGDIR/fig2_resultats.png" width="600">
+<img src="fig/fig2_resultats.png" width="600">
 
 - Spell-F1 **0.761** [95 % CI 0.720–0.793] against 0.701 for our best model without stacking: **+0.059**
   [+0.042, +0.081], better on all 10 matches.
@@ -138,7 +140,7 @@ the benchmark of section 3. The provided match enters the submission only in the
 
 ## 8. Limitations, and what we did about them
 
-<img src="FIGDIR/fig3_pilota_morta.png" width="600">
+<img src="fig/fig3_pilota_morta.png" width="600">
 
 | Limitation | What we did | What remains |
 |---|---|---|
@@ -169,6 +171,6 @@ python3.12 -m venv .venv
   the machines tested; it is backed by design: fixed seeds, deterministic algorithms, one thread, pinned library
   versions, and probabilities rounded to 5 decimals before the stack and the decoder, so that tiny floating-point
   differences between machines cannot change a label.
-- `models/nausicaa/`: trained weights · `base/`: shared inference code (data loading, features, TCN, rules, decoder) ·
+- `models/final/`: trained weights · `base/`: shared inference code (data loading, features, TCN, rules, decoder) ·
   `training/` and `dataset/`: training and evaluation code (published as code; training is not bit-reproducible
   across machines) · `results/`: benchmark results.

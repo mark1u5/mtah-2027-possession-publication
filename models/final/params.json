@@ -1,6 +1,6 @@
 {
  "banco": "v12t10p2",
- "origen": "Nausicaa (E23): TCN v10 symmetric + stack trained on bench v12t10p2 (dead ball moving, rules janv1 p2_notag without the mid-flight retiming, 6 seeds); decoder cfg from the all-matches fold of results_v12t10p2_sim_s012/stack_t2_g3.json",
+ "origen": "Final model (E23): TCN v10 symmetric + stack trained on bench v12t10p2 (dead ball moving, rules janv1 p2_notag without the mid-flight retiming, 6 seeds); decoder cfg from the all-matches fold of results_v12t10p2_sim_s012/stack_t2_g3.json",
  "cfg": {
   "a": 0.35,
   "b": 0.0,

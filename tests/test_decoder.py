@@ -13,7 +13,7 @@ import sys
 
 import numpy as np
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "base"))
 from models import decoder as dc  # noqa: E402
 
 ST = {"p5": [35.0, 35.6, 113.0], "mitjana": [334.0, 310.7, 489.2],
