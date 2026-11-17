@@ -1,0 +1,19 @@
+# Dependències exactes de make_submission.py (Python 3.12.3).
+# janv1 només necessita numpy, pandas i les seves dependències. v7 hi afegeix torch, amb la mateixa
+# compilació per a CPU que a l'entrenament (requirements.lock), i PyYAML, que bench/features.py importa.
+#   pip install --extra-index-url https://download.pytorch.org/whl/cpu -r requirements-submission.lock
+numpy==2.5.4
+pandas==3.0.6
+python-dateutil==4.0.0
+tzdata==2026.6
+torch==2.15.0+cpu
+filelock==4.2.7
+fsspec==2026.9.0
+Jinja2==3.1.6
+MarkupSafe==3.0.3
+mpmath==1.3.0
+networkx==3.7
+setuptools==78.1.0
+sympy==1.14.0
+typing_extensions==4.16.0
+PyYAML==6.0.3

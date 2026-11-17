@@ -1,0 +1,51 @@
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Licensed / private match assets and derived frame data
+data/**
+!data/README.md
+external_raw/
+evaluation/gt/**
+**/*possession_gt*
+**/possession_by_frame.pkl
+**/*tracking*.csv
+**/*tracking*.txt
+**/*tracking*.xml
+**/*events*.csv
+**/*events*.json
+**/*events*.xml
+
+# Predictions and generated evaluation outputs
+evaluation/results/*.csv
+evaluation/results/*.json
+submission*.csv
+submissions/
+**/predictions/
+bench/results/
+
+# Training caches and unreviewed model artifacts
+cache/
+*.npz
+*.pt
+*.pth
+*.ckpt
+*.pkl
+*.pickle
+*.parquet
+*.h5
+
+# Local environments / generated files
+.venv/
+venv/
+venv-*/
+__pycache__/
+*.py[cod]
+.DS_Store
+.idea/
+.vscode/
+
+# Visualizations can embed frame-level tracking
+visualitzador*.html
+submission_visualization*.html

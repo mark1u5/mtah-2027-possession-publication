@@ -1,0 +1,92 @@
+# Regles d'etiquetatge H/A/D dels partits externs (bench/build_labels.py).
+# Qualsevol canvi aquí obliga a pujar la versió: queda desada a cada .npz.
+version: "1.2"
+
+fps_sortida: 25
+
+# Una acció controlada de l'equip B dins del seu tram provisional fa vàlid el canvi.
+# Marge al voltant del tram per absorbir l'error de sincronització event-tracking.
+# És una definició, no s'ajusta: 5 frames = 0,2 s.
+marge_accio_frames: 5
+
+# Variant label_dur: el canvi és vàlid si l'equip B té la pilota com a mínim tants frames seguits.
+durada_minima_frames: 25
+
+idsse:
+  # El tipus és el primer fill de <Event>. Les jugades a pilota parada (ThrowIn, FreeKick,
+  # CornerKick, GoalKick, KickOff, Penalty) embolcallen un Play o un ShotAtGoal; es mira l'interior.
+  controlades:
+    Play: "passada o centrada; el jugador ha tingut la pilota per decidir-la"
+    ShotAtGoal: "xut; implica control previ (o remat intencionat)"
+    BallClaiming/BallClaimed: "el jugador s'apropia la pilota; inclou la captura del porter"
+    BallClaiming/BallHeld: "el porter bloca i reté la pilota"
+    BallClaiming/InterceptedBall: "intercepció amb apropiació; la DFL només la marca si queda amb la pilota"
+    TacklingGame/ballControlRetained: "el guanyador del duel conserva la pilota controlada"
+    TacklingGame/dribbledAround: "el guanyador supera el rival conduint, és a dir, una conducció"
+    TacklingGame/ballClaimed: "el guanyador del duel s'apropia la pilota"
+  no_controlades:
+    BallClaiming/Block: "bloqueig; desvia la pilota sense quedar-se-la"
+    TacklingGame/layoff: "toc de cap o de primera després del duel, sense control"
+    TacklingGame/ballcontactSucceeded: "només toca la pilota"
+    TacklingGame/fouled: "el duel acaba en falta, no en control"
+    OtherBallAction: "tocs, rebuigs i desviacions sense control (inclou DefensiveClearance)"
+    BallDeflection: "desviació (pal, travesser, àrbitre)"
+    Nutmeg: "marca de qualitat d'una acció; no és l'acció"
+    Run: "acció sense pilota"
+  # Equip de l'event: Team, i a TacklingGame, WinnerTeam.
+  # Criteri de durada a IDSSE (label_acc i label_dur): durada_minima_frames frames seguits en què
+  # BallPossession és de l'equip B, hi ha un jugador de B a distancia_max_m de la pilota i la pilota
+  # és a alcada_max_m o menys. A label_acc s'hi suma a les accions perquè la DFL no té events de
+  # conducció. Són constants per definició, no s'ajusten:
+  control_per_durada:
+    # 1,5 m: abast d'un jugador que porta la pilota als peus; més lluny no la pot jugar sense córrer.
+    distancia_max_m: 1.5
+    # 1,5 m: per sobre, la pilota va pel cap o més amunt i no es pot controlar ni conduir amb el peu.
+    alcada_max_m: 1.5
+  equip_provisional: "BallPossession (1 local, 2 visitant)"
+  sincronitzacio: "desfasament constant per part que minimitza la distància mediana entre els Play i la pilota (graella de ±5 s, pas de 40 ms)"
+
+skillcorner:
+  # Unitat: cada event player_possession de dynamic_events.csv (un jugador amb la pilota).
+  controlades:
+    end_type/pass: "acaba en passada"
+    end_type/shot: "acaba en xut"
+    carry/True: "el jugador condueix la pilota"
+  no_controlades:
+    end_type/clearance: "rebuig sense conducció"
+    end_type/possession_loss: "perd la pilota sense passar, xutar ni conduir"
+    end_type/foul_suffered: "li fan falta abans d'una acció controlada"
+    end_type/unknown: "final desconegut; no hi ha prou informació per dir que hi ha control"
+  # Una possessió controlada si alguna regla de 'controlades' es compleix (end_type o carry).
+  # Equip provisional: el del player_possession, des del seu frame_start fins al següent.
+  # possession.group no s'hi fa servir: coincideix massa poc amb els player_possession (vegeu l'informe).
+  equip_provisional: player_possession
+  sortida_camp_finestra_s: 5
+
+metrica:
+  # Tipus / subtipus de RawEventsData.csv (partits 1-2) i events.json (partit 3).
+  controlades:
+    PASS: "passada"
+    CARRY: "conducció"
+    SHOT: "xut"
+    SET PIECE: "el llançador posa la pilota en joc amb una passada"
+  no_controlades:
+    RECOVERY: "per la decisió de l'equip, una recuperació sola no compta com a control"
+    CHALLENGE: "per la decisió de l'equip, un duel sol no compta com a control"
+    BALL LOST: "és de l'equip que perd la pilota"
+    BALL OUT: "marca la sortida, no un control"
+    FAULT RECEIVED: "falta"
+    CARD: "no és una acció amb la pilota"
+  # Esdeveniments que canvien l'equip provisional (abans d'aplicar la regla de duels).
+  equip_provisional: [PASS, CARRY, SHOT, SET PIECE, RECOVERY, CHALLENGE-WON]
+  # Inici de pilota morta (frame de l'event). Fi: Start Frame del SET PIECE següent.
+  morta_inici:
+    BALL OUT: end
+    "SHOT *GOAL*": end            # gol: el set piece següent és el KICK OFF
+    "BALL LOST *OFFSIDE*": end
+    "BALL LOST *HAND BALL*": end
+    FAULT RECEIVED: start
+    "CHALLENGE *-FAULT-*": start
+  # Un SET PIECE sense cap disparador: morta des del final de l'event anterior.
+  morta_sense_disparador: final_event_anterior
+  camp_per_defecte_m: [105, 68]
