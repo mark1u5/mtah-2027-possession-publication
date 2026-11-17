@@ -1,11 +1,8 @@
-# Nausicaa — ball possession from tracking data
+# Ball possession from tracking data
 
 Submission of team **El Chato** to *More Than A Hack 2027* (match BAR–ATH). For every frame of the tactical video,
 Nausicaa says which team has the ball (`H` home, `A` away), whether the ball is dead (`D`), or `X` outside the halves.
 It reads **only the ATD tracking**.
-
-The name comes from Book VI of Homer's *Odyssey*: Nausicaa plays ball with her companions on the beach (the oldest
-ball game in Western literature) until a stray throw sends the ball into the water, which is when the story moves on.
 
 **Start with the technical document:** [`TECHNICAL_DOCUMENT.md`](TECHNICAL_DOCUMENT.md) (PDF: [`TECHNICAL_DOCUMENT.pdf`](TECHNICAL_DOCUMENT.pdf)).
 
