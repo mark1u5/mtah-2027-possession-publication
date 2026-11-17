@@ -1,11 +1,11 @@
-"""Nausicaa: ATD tracking of BAR-ATH -> per-frame possession CSV (frame,label). Single inference script.
+"""ATD tracking of BAR-ATH -> per-frame possession CSV (frame,label). Single inference script.
 
     python predict.py --data /path/to/data --out submission.csv
 
 --data is the folder of the competition data bundle that contains tactical/BAR-ATH_tactical_atd.{txt,xml}
 (default: $MTAH_DATA_DIR, else ./data). No label is read. CPU, one thread, fixed seeds.
 Steps: tracking -> 35 features -> TCN (as is + teams swapped) -> rules -> LightGBM stack -> Viterbi -> CSV.
-The model folder (default models/nausicaa) holds tcn.pt, stack.txt and params.json (decoder settings, HMM
+The model folder (default models/final) holds tcn.pt, stack.txt and params.json (decoder settings, HMM
 statistics, feature groups of the stack).
 """
 import argparse, hashlib, json, os, sys
@@ -41,7 +41,7 @@ import lightgbm as lgb
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--model", default=os.path.join("models", "nausicaa"))
+    ap.add_argument("--model", default=os.path.join("models", "final"))
     ap.add_argument("--data", default=None, help="data bundle folder containing tactical/ (default: $MTAH_DATA_DIR or ./data)")
     ap.add_argument("--out", default=None)
     ap.add_argument("--comprueba", action="store_true")

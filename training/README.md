@@ -19,4 +19,4 @@ of the scripts (seeds, suffixes, threads).
 | Dropped ideas (section 7) | `exp_stack.py`, `e19.sh`, `e20.sh`, `e22_posesiones.py`, `adv.py` | `../results/` |
 
 Overall order: `../dataset` (degradation) → TCN training with `base_patches` → `run_banc.sh` / `e21_prepara.sh`
-(stack and nested evaluation) → `export_model.py` (writes the model folder copied to `../models/nausicaa/`).
+(stack and nested evaluation) → `export_model.py` (writes the model folder copied to `../models/final/`).

@@ -42,7 +42,7 @@ import numpy as np
 x = np.arange(len(lab)); w = 0.38
 fig, ax = plt.subplots(figsize=(10, 2.9))
 ax.bar(x - w / 2, d["v9m1"], w, color=GREY, label=f"best model without stacking: TCN + rules + Viterbi (mean {np.mean(d['v9m1']):.3f})")
-ax.bar(x + w / 2, d["ulises"], w, color=TEAL, label=f"Nausicaa (mean {np.mean(d['ulises']):.3f})")
+ax.bar(x + w / 2, d["ulises"], w, color=TEAL, label=f"submission (mean {np.mean(d['ulises']):.3f})")
 ax.axvline(6.5, color="#bbb", lw=0.8, ls="--"); ax.text(3, 0.875, "IDSSE (Bundesliga)", ha="center", color="#555", fontsize=8); ax.text(8, 0.875, "Metrica (never trained on)", ha="center", color="#555", fontsize=8)
 ax.set_xticks(x); ax.set_xticklabels(lab, fontsize=8); ax.set_ylim(0.5, 0.9); ax.set_ylabel("spell-F1")
 ax.spines[["top", "right"]].set_visible(False); ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.12), ncol=2, fontsize=8, frameon=False); ax.grid(axis="y", alpha=0.25)

@@ -3,7 +3,7 @@ import os, sys, glob
 import numpy as np
 AQUI = os.path.dirname(os.path.abspath(__file__))
 BASE = os.path.join(AQUI, "..", "base")
-ROOT = os.path.abspath(os.path.join(AQUI, "..", ".."))
+ROOT = os.path.abspath(os.path.join(AQUI, ".."))
 os.environ.setdefault("MTAH_DEG", "v3")
 os.environ.setdefault("MTAH_DATA_DIR", os.path.join(ROOT, "data"))
 for p in (BASE, os.path.join(BASE, "bench"), os.path.join(BASE, "evaluation")):

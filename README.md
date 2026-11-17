@@ -1,11 +1,8 @@
-# Nausicaa — ball possession from tracking data
+# Ball possession from tracking data
 
 Submission of team **El Chato** to *More Than A Hack 2027* (match BAR–ATH). For every frame of the tactical video,
-Nausicaa says which team has the ball (`H` home, `A` away), whether the ball is dead (`D`), or `X` outside the halves.
+The model says which team has the ball (`H` home, `A` away), whether the ball is dead (`D`), or `X` outside the halves.
 It reads **only the ATD tracking**.
-
-The name comes from Book VI of Homer's *Odyssey*: Nausicaa plays ball with her companions on the beach (the oldest
-ball game in Western literature) until a stray throw sends the ball into the water, which is when the story moves on.
 
 **Start with the technical document:** [`TECHNICAL_DOCUMENT.md`](TECHNICAL_DOCUMENT.md) (PDF: [`TECHNICAL_DOCUMENT.pdf`](TECHNICAL_DOCUMENT.pdf)).
 
@@ -37,7 +34,7 @@ Windows: `.venv\Scripts\pip ...` and `.venv\Scripts\python ...`.
 |---|---|
 | `predict.py` | The single inference script: tracking → features → TCN → rules → stack → Viterbi → CSV |
 | `feats_stack.py` | Features of the stacked model (numpy) |
-| `models/nausicaa/` | Trained model: `tcn.pt` (TCN), `stack.txt` (LightGBM), `params.json` (decoder settings) |
+| `models/final/` | Trained model: `tcn.pt` (TCN), `stack.txt` (LightGBM), `params.json` (decoder settings) |
 | `requirements.lock` | Pinned dependencies of inference |
 | `base/` | Shared code used at inference: data loading (`games.py`, `bench/adapter.py`), features (`bench/features.py`), TCN (`models/tcn_v7.py`), rules (`starter/`, `bench/tune_decoder.py`), decoder (`models/decoder.py`). Its constants for the training workstation are not used at inference |
 | `training/` | Training and evaluation of the stack (nested protocol) and changes made to the TCN training script (`base_patches/`); `training/README.md` maps every number of the document to its script |
