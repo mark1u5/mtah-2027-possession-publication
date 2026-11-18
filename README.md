@@ -2,8 +2,8 @@
 
 Submission pipeline **v9m1** (`markius_v9_m1`) by **Marc Bisbal & Jan Fusté** (Team El Chato) for *More Than A Hack 2027* (BAR–ATH). For every frame of the tactical video, the model predicts `H` (home in possession), `A` (away in possession), `D` (dead ball), or `X` (outside the halves), reading **only the ATD tracking**.
 
+- **Live interactive demo**: **https://mark1u5.github.io/mtah-2027-possession-publication/** ([`demo/`](demo/README.md) — 2D pitch replay, synchronized `TCN v7d` + `p3_notag` + `conf_fisica` + `Viterbi` tracks, and live `v9m1` parameter lab on open Metrica sample matches)
 - **Technical document**: [`TECHNICAL_DOCUMENT.md`](TECHNICAL_DOCUMENT.md) · [`TECHNICAL_DOCUMENT.pdf`](TECHNICAL_DOCUMENT.pdf)
-- **Interactive online demo**: [`demo/`](demo/README.md) (2D pitch replay, synchronized `TCN v7d` + `p3_notag` + `conf_fisica` + `Viterbi` tracks, and live `v9m1` parameter lab on open Metrica sample matches)
 - **Archived final ensemble (`Nausicaa`)**: preserved on branch `archive/nausicaa`
 
 ## Model overview (`v9m1`)

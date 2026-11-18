@@ -16,13 +16,11 @@ python demo/server.py --port 4174
 
 ## Deploy online (2 zero-friction options)
 
-### Option 1: GitHub Pages (free, static)
+### Option 1: GitHub Pages (live, static)
 
-Because Viterbi and `Spell-F1` run 100% client-side in `demo/viterbi.js`, no backend is required:
+Live URL (deployed automatically from `demo/` via `.github/workflows/pages.yml`):
 
-1. Push `main` to GitHub.
-2. In repository **Settings → Pages**, set **Deploy from a branch** → `main` / `/ (root)`.
-3. Open `https://<username>.github.io/mtah-2027-possession-publication/demo/`.
+**https://mark1u5.github.io/mtah-2027-possession-publication/**
 
 ### Option 2: VPS + `sslip.io` HTTPS (like `64-177-60-166.sslip.io`)
 
