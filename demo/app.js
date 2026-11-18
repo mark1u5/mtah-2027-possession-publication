@@ -76,7 +76,7 @@ async function buildLandingCards() {
     btn.innerHTML = `
       <div class="mcard-top">
         <b>${item.title}</b>
-        <span>${Math.round(v9.spellF1 * 100)}% spell match</span>
+        <span title="Spell-F1: predicted possession spells matched to the real ones by time overlap (IoU 0.3 to 0.7), F1 averaged over thresholds">${Math.round(v9.spellF1 * 100)}% spell match</span>
       </div>
       <p>${item.subtitle}</p>
       <div class="mcard-bar"><canvas></canvas></div>
