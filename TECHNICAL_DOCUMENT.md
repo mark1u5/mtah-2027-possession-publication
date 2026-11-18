@@ -1,176 +1,90 @@
-# Ball possession from tracking data
+# Ball possession from tracking data (`v9m1`)
 
 **Team El Chato** · match BAR–ATH · input: ATD tracking only
 
-| <span class="big">0.761</span><br>Spell-F1 on 10 external matches (our best model without stacking: 0.701) | <span class="big">10 / 10</span><br>External matches improved over that model | <span class="big">ATD only</span><br>No video, no events, no labels of the match | <span class="big">Byte-exact</span><br>Same CSV on Linux ARM and Windows x86 |
+| **0.701** Spell-F1 [0.667, 0.735]<br>10 external matches (Macro-F1: 0.893) | **+0.0047** vs `markius_v9`<br>95% CI [+0.0004, +0.0105] (6/10 matches) | **ATD only**<br>No video, no Smart Tagging, no labels | **Byte-exact**<br>SHA-256 `b9cab719...25ed` |
 |---|---|---|---|
 
 ## 1. Approach
 
-<img src="fig/fig1_pipeline.png" width="660">
+<img src="fig/fig1_pipeline.svg" width="880" alt="v9m1 pipeline diagram">
 
 | Step | What it does | How | Why |
 |---|---|---|---|
-| **1 · Features** | Describes each frame with 35 numbers | Ball position, visibility, smoothed speed and acceleration, time since last seen, distance to the lines; for each team, distance and relative speed of its two closest players to the ball, centroid, spread, visible players; pitch oriented by attacking direction | A compact, team-symmetric view of who is near the ball |
-| **2 · TCN** | Per-frame probabilities of H / A / D | Temporal convolutional network: 8 residual blocks of dilated convolutions (dilation 1 → 128), receptive field ±20 s; trained with cross-entropy and triple weight within ±0.5 s of a possession change; run twice at inference (as is and with the teams swapped) and averaged | Possession depends on what happened before and after the frame |
-| **3 · Rules** | A deterministic H / A / D label | The closest player within reach becomes a candidate; possession changes when the candidate keeps the ball (low relative speed) for a few frames; dead ball when the ball leaves the pitch or play visibly stops; also a "clear control" flag | Transparent and strong on clear control; makes different mistakes than the TCN |
-| **4 · Stack** | Corrected H / A / D probabilities | Gradient-boosted trees (LightGBM, 250 trees) reading the TCN output at nine instants from −2 s to +2 s and its 1, 3 and 6 s averages, the rule label around the frame and how long ago it changed, the rule confidence, and the local geometry (distances, ball speed, which team was last and will next be within 1–2 m of the ball) | Learns when to trust the TCN and when the rules or the geometry |
-| **5 · Viterbi** | Possession spells | Hidden Markov model with three states and a minimum duration per state (from the training spell lengths); emissions are the stack probabilities; best path per half | The metric scores spells, not frames: avoids flickering |
+| **1 · Features** | Describes each frame with 32 kinematic values | Ball coordinates, visibility, smoothed speed/acceleration, time since last seen, boundary distances; for each team, distance and relative speed of the two closest players, centroid, spread, visible count; oriented by attacking direction | A compact, team-symmetric geometric view around the ball |
+| **2 · TCN (`v7d`)** | Per-frame `H / A / D` probabilities | Non-causal temporal convolutional network: 8 dilated residual blocks (dilation 1 → 128, receptive field ±510 frames ≈ ±20 s); trained on `v3`-degraded external matches with 3× loss weight within ±0.5 s of transitions | Possession depends on seconds of past and future context |
+| **3a · Rules (`p3_notag`)** | Deterministic `H / A / D` label | `principled_v1` (`p3_notag`, without Smart Tagging): nearest reachable player becomes candidate; switches on controlled touch; dead ball when out of play or players visibly stop; outputs `control_clar` | Transparent and strong when a player clearly controls the ball |
+| **3b · Contact confidence** | Invariant physical contact score `conf_fisica` | $\text{conf}_t = \max_{T \in \{H,A\}} \exp(-0.20\,v_{\text{rel},T}) \cdot \mathbf{1}[\kappa_T \le 0.95]$ using dimensionless reach ratio $\kappa \le 0.95$ | Measures how physically certain ball control is at frame $t$ |
+| **4 · Dynamic modulation** | Modulates TCN vs rules weight per frame | $w_t = w\,(1 - \text{factor}\cdot\text{conf}_t)$ with `w=1.0`, `factor=0.35`, `lam=0.25`; log-linear emission $e_t(c) = \lambda [w_t \log(p_t(c)/\pi_c) + (1 - w_t)\log q_t(c)]$ | Relies on the TCN in ambiguous play and shifts weight to rules under clear physical contact |
+| **5 · Decoupled Viterbi** | Smooth possession spells per half | Hidden Markov model with mandatory state chains `m_c = round(s_c * p5_c)` using decoupled multipliers `s_dur = [1.0, 1.0, 0.25]` (`s_P=1.0` live `H/A`, `s_D=0.25` dead `D`) | Prevents spell over-fragmentation while keeping brief dead-ball stoppages |
 
-**How the pieces fit together.** Two branches read the same tracking independently and never see each other: a
-*learned branch* (features → TCN) and a *rule-based branch* (rules, which work directly on positions and speeds). The
-stack is the only place where they meet: for every frame it receives both opinions in a window around the frame, plus
-the local geometry, and outputs one set of probabilities. It is trained on external matches where the TCN
-probabilities come from networks that did not see that match, so it learns how reliable each source really is. The
-Viterbi decoder sees only the stack output. Frames outside the two halves are written as `X`.
+**How the pieces fit together.** Two independent branches process the ATD tracking: a *learned temporal branch* (features → TCN `v7d`) and a *deterministic physical branch* (`p3_notag` rules + `conf_fisica`). They meet solely in the log-linear emissions of the Viterbi decoder, where clear physical contact dynamically lowers the TCN weight $w_t$ from `1.0` down toward `0.65`, and decoupled minimum durations preserve short dead-ball intervals without fracturing live possessions. Frames outside the two halves are labelled `X`.
 
-## 2. Possession rules (what the model learns)
+## 2. Possession rules & parameters
 
 | Situation | Label |
 |---|---|
-| Ball out, foul, goal or offside, until the first touch of the restart | **Dead ball (D)** |
-| Team B makes a controlled action (pass, carry, shot, keeper catch) | Possession changes to B **from its first touch** |
-| Loose ball, challenge, deflection or block without control | Possession **stays** with the previous team |
-| Restart (throw-in, free kick, corner, kick-off) | The restarting team, from the first touch |
-| Spell shorter than the 5th percentile of the training spells | Not emitted (decoder) |
-| Ball not tracked | **Not** a reason for D by itself |
+| Ball out of bounds, stoppage, or players visibly stopped, until first restart touch | **Dead ball (`D`)** |
+| Team B executes a controlled action (pass, carry, shot, keeper catch) | Possession switches to B **from first touch** |
+| Loose ball, challenge, deflection, or block without control | Possession **stays** with previous team |
+| Spell shorter than decoupled minimum (`s_P=1.0` live, `s_D=0.25` dead) | Suppressed by Viterbi |
+| Ball not tracked | **Not** `D` by itself (TCN + player kinematics bridge gaps) |
 
-The rule-based branch uses the team's rule set without one convention that had been read off the public five
-minutes early in the project (dating a direct turnover to the middle of the ball's flight). Removing it changed
-spell-F1 by −0.001 on the benchmark (3/10 matches), and we kept the version that owes nothing to the public window.
-The rules still contain a few physical constants inherited from the team's first rule-based model (players' mean speed
-of 1.40 / 1.90 m/s for stoppages, a reach ratio of 0.95, a contact decay of 0.20 per m/s); their origin is not
-documented.
+- **No Smart Tagging (`p3_notag`)**: Smart Tagging is never read at inference or tuning.
+- **Inherited physical constants**: stoppages use player mean-speed thresholds `1.40 / 1.90 m/s` (from `principled_v1`), contact reach ratio $\kappa \le 0.95$, and relative-speed decay $0.20\text{ (m/s)}^{-1}$ (from `markius_v5`).
+- **Rule screening**: three candidate rule modifications (`p3_notag_contest`, `p3_notag_control`, `p3_notag_restart`) were pre-registered and screened on the 10-match external benchmark; all three slightly lowered `spell-F1` (`-0.0002` to `-0.0009`) and were rejected.
 
-Robustness was checked against two other conventions (1 s of close control; the provider's own possession channel).
-Which one matches the official ground truth is unknown: this is our largest uncertainty.
-
-## 3. Training data and evaluation benchmark
+## 3. Training data & external benchmark
 
 | Dataset | Matches | Role | Labelled by | Source · licence |
 |---|---|---|---|---|
-| **IDSSE** (Bassek et al., *Sci. Data* 12:195, 2025) | 7 · Bundesliga 2022/23 · optical tracking, ~11 h | Training + model selection | DFL / Sportec: ball status and possession per frame, official events | Figshare · CC-BY 4.0 (DFL) |
-| **SkillCorner** Open Data | 20 · A-League 2024/25 · broadcast tracking | Training (TCN) | SkillCorner's automatic system | GitHub · MIT |
-| **Metrica** Sports sample data | 3 · anonymised | **Test only** | Metrica events | GitHub · source credited |
+| **IDSSE** (Bassek et al., *Sci. Data* 12:195, 2025) | 7 · Bundesliga 2022/23 · ~11 h | TCN training + nested decoder selection | DFL / Sportec official events & ball status | Figshare · CC-BY 4.0 |
+| **SkillCorner** Open Data | 20 · A-League 2024/25 | TCN training + HMM prior statistics | SkillCorner automatic system | GitHub · MIT |
+| **Metrica** Sports sample data | 3 · anonymised | **Hold-out test only** | Metrica events | GitHub · open sample |
 
-Sources: IDSSE https://doi.org/10.6084/m9.figshare.28196177 · SkillCorner https://github.com/SkillCorner/opendata ·
-Metrica https://github.com/metrica-sports/sample-data. No data from the provided match is used for training or
-validation.
+All external tracking is converted to 25 fps, metres, centred pitch, and degraded (`v3`) using **label-free aggregate statistics** of the competition tracking (ball dropout around kicks, slow wander, player drop-outs, and team swaps). Decoder parameters (`w`, `factor`, `lam`, `s_P`, `s_D`) were selected via nested cross-validation over the 7 IDSSE folds (`results/v9m1/decoder_parametres_per_plec_deg3_v7d_v9m1.json`), while the 3 Metrica matches were never seen by either the TCN or the decoder grid search.
 
-**How the data was worked** (in this order):
+## 4. Results & progression
 
-1. **Common format.** All matches converted to 25 fps, metres, centred pitch and the same orientation.
-2. **Labels.** A versioned, deterministic script turns each provider's annotations into H / A / D per frame with the
-   rules of section 2, plus the two alternative conventions.
-3. **Degradation.** External tracking is much cleaner than the provided ATD, so it is degraded to look like it,
-   calibrated on **aggregate distributions of the provided tracking only** (for example, how often and where the ball
-   disappears, how noisy it is): no labels, and nothing tied to specific frames of the match. Each match is used with six
-   random degradations and with the teams swapped.
-4. **Validation without labels.** Three checks: distance between ~20 tracking descriptors; a classifier trying to tell
-   external frames from provided ones (AUC, 0.5 = indistinguishable); and the behaviour of simple models on both.
-5. **Benchmark.** The 7 IDSSE and 3 Metrica matches, scored with spell-F1. Each match is scored with parameters chosen
-   on the other nine (nested selection), and models are compared with a paired bootstrap over matches. Every change was
-   accepted only if it met a criterion written down before the experiment, under all three labelling conventions.
+<img src="fig/fig2_results.svg" width="880" alt="Per-match Spell-F1 on external matches">
 
-| Change to the external data | What it fixes | Effect |
+<img src="fig/fig3_progression.svg" width="880" alt="Progression across stages">
+
+| Model | Spell-F1 (10) [95% CI] | Macro-F1 (10) | IDSSE (7) | Metrica (3) | BAR–ATH sanity (spells / mean dur / % D) |
+|---|---|---|---|---|---|
+| `tcn_v7d` (raw argmax) | 0.320 [0.296, 0.343] | 0.891 | 0.321 / 0.907 | 0.319 / 0.853 | 674 / 5.57 s / 40.89% |
+| `janv1_notag` (`p3_notag` rules) | 0.478 [0.436, 0.526] | 0.761 | 0.434 / 0.732 | 0.582 / 0.829 | 345 / 9.98 s / 45.84% |
+| `janv1_vit` (rules + Viterbi) | 0.583 [0.562, 0.606] | 0.840 | 0.577 / 0.845 | 0.596 / 0.828 | 305 / 11.25 s / 46.02% |
+| `porta_v7d` (gate + Viterbi) | 0.690 [0.654, 0.723] | 0.891 | 0.701 / 0.906 | 0.662 / 0.856 | 196 / 17.76 s / 45.23% |
+| `fusio_v7d` (fixed fusion) | 0.696 [0.664, 0.728] | 0.891 | 0.705 / 0.906 | 0.676 / 0.856 | 208 / 17.84 s / 41.59% |
+| `markius_v9` (+ contact mod.) | 0.697 [0.664, 0.727] | 0.892 | 0.708 / 0.908 | 0.670 / 0.856 | 208 / 18.31 s / 40.06% |
+| **`v9m1` (`markius_v9_m1`)** | **0.701 [0.667, 0.735]** | **0.893** | **0.714 / 0.909** | **0.671 / 0.856** | **211 / 18.06 s / 40.03%** |
+
+Robustness check with alternative duration-based labelling (`label_dur`): `0.693 [0.658, 0.728]` vs `0.690` (`markius_v9`) and `0.692` (`fusio_v7d`).
+
+## 5. Assets: used, dropped & diagnosis
+
+<img src="fig/fig4_diagnosis.svg" width="880" alt="Segmentation and transition diagnosis">
+
+| Used | Not used | Tried and rejected (external benchmark) |
 |---|---|---|
-| The ball disappears while moving near a player and reappears after a kick (it used to vanish standing still) | Ball gaps in the wrong places | Descriptor distance 0.42 → 0.15; AUC (IDSSE) 0.90 → 0.74 |
-| Slow ball wander, player drop-outs during ball gaps, wrong-team detections | Too-clean ball and player tracks | Included in the figures above |
-| SkillCorner: keep the provider's extrapolated players | 9.5 visible players instead of ~20.5 | AUC (SkillCorner) 0.998 → 0.86 |
-| SkillCorner: team codes corrected | Teams were swapped relative to the labels | TCN frame accuracy on IDSSE 0.51–0.73 → 0.88–0.93 |
-| Visible dead ball moves (carried to the restart spot) | The stack had learnt "moving ball = in play" | On the match the stack keeps 93 % of the TCN's dead ball instead of 89 % |
+| ATD tracking only (`predict.py`) | Video, homographies | `v9_r` neutral TCN in ball gaps (`0.688` vs `0.697`) |
+| `tcn_v7d` + `principled_v1` (`p3_notag`) | Smart Tagging events | Extended grid `v9m1x` (`0.701` on `label_acc`, drops to `0.687` on `label_dur`) |
+| `conf_fisica` + decoupled Viterbi (`s_P=1.0, s_D=0.25`) | Broadcast tracking | Symmetric `H/A` HMM stats (`-0.0003`, 3/10 matches) |
+| IDSSE, SkillCorner, Metrica (external only) | Any BAR–ATH labels | Rule variants `contest` (`-0.0006`), `control` (`-0.0009`), `restart` (`-0.0002`) |
 
-## 4. How we got here
+**Known limitations (verified by pre-registered diagnosis):**
+1. **Missed short turnovers**: predicted/real spell count is `0.87` on IDSSE and `0.81` on Metrica (`IoU 0.50` precision/recall: `0.78/0.68` on IDSSE, `0.74/0.64` on Metrica); `47%` (IDSSE) and `51%` (Metrica) of `H ↔ A` switches are missed.
+2. **Real-tracker dead-ball tail**: on Metrica, live→dead transitions arrive `+6.4` frames late on average (`83%` late; `H ↔ A` p75 `+16` frames) when the real tracker drops the ball leaving play and stoppages are inferred from player deceleration.
 
-The model was not designed in one go. It is the result of seven stages, each started by a measured weakness of the
-previous one. Unless stated otherwise, every number is spell-F1 on the benchmark of section 3.
+## 6. Reproduction
 
-<img src="fig/fig4_historia.png" width="620">
-
-The dashed line (0.701) is the stage-3 pipeline with refined rules, developed in parallel: our best model without
-stacking, and the reference used throughout this document.
-
-| Stage | Starting problem | What we built or tried | What we learned | Kept |
-|---|---|---|---|---|
-| **1 · Rules** | First, a transparent baseline | Hand-written physical rules (closest player, sequence of touches) decoded with hidden Markov and semi-Markov models with minimum durations (~6 versions) | External providers do not agree on what possession is, so every change must hold under several labelling conventions | The rules, later as one input among others |
-| **2 · Per-frame learning** | Rules cannot weigh many weak cues at once | The common format for the 30 external matches; a per-frame classifier on hand-made features (~4 versions) | Per-frame models flicker and need temporal context; the quality of external labels matters as much as the model | The external dataset |
-| **3 · Temporal network** | Possession depends on seconds of context | The degraded benchmark; a TCN with ±20 s of context, combined with the rules in a Viterbi decoder (~4 networks, ~7 decoders) | TCN + rules + Viterbi: **0.696** | The TCN, the decoder, the benchmark |
-| **4 · Stacking** | Error analysis: spell-F1 is lost at possession changes with the ball visible, not in long ball gaps; tuning the decoder alone barely helped | A second-level model that sees the TCN, the rules and the local geometry around each frame (~12 versions) | **0.753**. With the TCN alone as input the stack gives only 0.705: the gain comes from combining sources, not from smoothing | The stack |
-| **5 · Data that looks like the match** | A pipeline check on the public five minutes disagreed with the benchmark | Instead of tuning on that window (not allowed), we tested without labels whether the external data resembles the provided tracking. It did not; we rebuilt the degradation and found swapped team codes in one provider (section 3) | The model was limited by the data more than by its architecture | The new degradation and the team-code fix |
-| **6 · Robustness** | Each model was best on the degradation it was trained on | TCN trained on two degradations at once; prediction averaged with the teams swapped | +0.013 on the corrected data (symmetric prediction alone: +0.010); no loss when the test degradation changes | Both |
-| **7 · Dead ball** | On the provided match the stack discarded visible dead ball that both the TCN and the rules saw | Found the cause: in external matches the visible dead ball stands still, on the provided match it is carried to the restart spot (median 1.4 m/s). The degradation now moves it; the stack was retrained | No loss on the benchmark and more dead ball kept on the match (section 8) | **Final model** |
-
-The thread: start from transparent rules; add learned temporal context; combine both instead of choosing one; and
-when the remaining errors came from differences between external and provided tracking rather than from the model,
-fix the data instead of adding complexity. Ideas that did not pass their acceptance test are listed in section 7.
-
-## 5. Results on external matches
-
-<img src="fig/fig2_resultats.png" width="600">
-
-- Spell-F1 **0.761** [95 % CI 0.720–0.793] against 0.701 for our best model without stacking: **+0.059**
-  [+0.042, +0.081], better on all 10 matches.
-- On the 3 Metrica matches, never used for training: +0.034.
-- On the provided match: 192 possessions, 19.1 s on average, 42 % dead ball.
-
-## 6. How the provided match is used
-
-Nothing was labelled or corrected by hand. No parameter, threshold or model of the submitted pipeline was fitted or
-chosen on the labels of the provided match or on the score of its five public minutes; our decisions were measured on
-the benchmark of section 3. The provided match enters the submission only in these ways:
-
-- **Its tracking, without labels**, which the rules allow: the degradation is calibrated on its aggregate
-  distributions (section 3), and the final stack had to pass one label-free check on it (keep more of the TCN's dead
-  ball than the previous stack: 92.9 % against 89 %).
-- **The five public minutes** were scored as a pipeline check. Once, they showed where to look: every variant predicted
-  far less dead ball than the window contains. The problem was diagnosed and fixed on external matches and on the
-  unlabelled tracking (stages 5 and 7), never on the window's score.
-
-## 7. Assets: used, not used, dropped
-
-| Used | Not used | Tried and dropped (effect on external matches) |
-|---|---|---|
-| ATD tracking (only input) | Video, homography | Decoder-only tuning (≤ +0.007) |
-| IDSSE, SkillCorner, Metrica | Broadcast tracking | Direct rule weight in the decoder (−0.006 to −0.049) |
-| PyTorch, LightGBM (CPU) | Smart Tagging events | "Kick" features (behave differently on the provided tracking) |
-| | Any human label of the match | Stack also trained on SkillCorner (−0.016) |
-| | | Removing ball speed from the stack (cost accuracy) |
-| | | Retraining the TCN with the dead-ball fix (no gain) |
-| | | Forcing the number of possessions in the decoder (no gain, even with the true count of each external match) |
-
-## 8. Limitations, and what we did about them
-
-<img src="fig/fig3_pilota_morta.png" width="600">
-
-| Limitation | What we did | What remains |
-|---|---|---|
-| **Dead ball moves on the match but stands still in external data** | Stage 7 (figure above) | The stack still predicts less visible dead ball than the rules (12.7 % vs 14.8 %) |
-| **Short possession changes are missed** | The stack recovers part of them; forcing more changes does not help | Fewer spells than reality |
-| **External ≠ provided tracking** | Degradation calibrated on aggregates (section 3) | Still distinguishable (AUC 0.74–0.86) |
-| **Few matches** (the stack is trained on 7) | Paired bootstrap, nested selection | Wide confidence intervals |
-| **Second-level leakage** on IDSSE: when an IDSSE match is scored, the stack's training inputs on the other matches come from TCNs that saw it | Metrica, which has no leakage, is reported separately (section 5) | — |
-
-With more time: a model of how a real tracker loses the ball; set-piece features; finding out which possession
-convention the ground truth follows.
-
-## 9. Reproduction
-
-```
+```bash
 python3.12 -m venv .venv
-.venv/bin/pip install -r requirements.lock \
-    --extra-index-url https://download.pytorch.org/whl/cpu
-.venv/bin/python predict.py --data <data folder> --out submission.csv
+.venv/bin/pip install -r requirements.lock --extra-index-url https://download.pytorch.org/whl/cpu
+.venv/bin/python predict.py --data <data_folder> --out submission.csv
 ```
 
-- `<data folder>` is the folder of the competition data bundle that contains `tactical/BAR-ATH_tactical_atd.txt`
-  and `.xml` (only the ATD tracking is read). About one minute; one CPU thread, fixed seeds.
-- Expected sha256: `8c5523a89afa68d87764404e3ca85a1f381d99113f70b0cc7a5b905decce2d9d`.
-- **Why sha256.** SHA-256 is a cryptographic hash function: it gives a 64-character fingerprint of a file, and changing a
-  single label changes the whole fingerprint. Equal fingerprints therefore mean byte-identical files. We obtained the same
-  fingerprint on Linux ARM, on Windows x86 and from a fresh clone of this repository. This shows reproducibility on
-  the machines tested; it is backed by design: fixed seeds, deterministic algorithms, one thread, pinned library
-  versions, and probabilities rounded to 5 decimals before the stack and the decoder, so that tiny floating-point
-  differences between machines cannot change a label.
-- `models/final/`: trained weights · `base/`: shared inference code (data loading, features, TCN, rules, decoder) ·
-  `training/` and `dataset/`: training and evaluation code (published as code; training is not bit-reproducible
-  across machines) · `results/`: benchmark results.
+- Runs on CPU (2 threads, deterministic algorithms, fixed seeds) in ~45 seconds.
+- Expected output SHA-256: `b9cab7198add0f670849b0c34e92702d50c9a5703b8231a36a96a1cc287825ed`.
+- Format validation: `python evaluation/validate_submission.py submission.csv`.

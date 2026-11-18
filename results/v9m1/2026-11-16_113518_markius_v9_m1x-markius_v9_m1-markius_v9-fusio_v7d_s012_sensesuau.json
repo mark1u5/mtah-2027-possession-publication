@@ -1,0 +1,1956 @@
+{
+ "cobertura": {
+  "idsse": {
+   "pct_valids_avaluats": 100.0,
+   "pct_valids_exclosos_trams_curts": 0.0
+  },
+  "metrica": {
+   "pct_valids_avaluats": 100.0,
+   "pct_valids_exclosos_trams_curts": 0.0
+  },
+  "skillcorner": {
+   "pct_valids_avaluats": 74.27,
+   "pct_valids_exclosos_trams_curts": 25.73
+  }
+ },
+ "comparacions": [
+  {
+   "a": "markius_v9_m1x",
+   "a_guanya": false,
+   "b": "markius_v9_m1",
+   "b_guanya": false,
+   "b_millor_en_partits": 4,
+   "dif_spellF1_b_menys_a": -4.962475197820559e-05,
+   "ic95": [
+    -0.006792877301712306,
+    0.006221779507348787
+   ],
+   "partits": 10
+  },
+  {
+   "a": "markius_v9_m1x",
+   "a_guanya": false,
+   "b": "markius_v9",
+   "b_guanya": false,
+   "b_millor_en_partits": 3,
+   "dif_spellF1_b_menys_a": -0.0047529732761095065,
+   "ic95": [
+    -0.011760029160991536,
+    0.002228914172951332
+   ],
+   "partits": 10
+  },
+  {
+   "a": "markius_v9_m1x",
+   "a_guanya": false,
+   "b": "fusio_v7d",
+   "b_guanya": false,
+   "b_millor_en_partits": 4,
+   "dif_spellF1_b_menys_a": -0.004974685026561498,
+   "ic95": [
+    -0.013071939485766963,
+    0.0034604710328157676
+   ],
+   "partits": 10
+  },
+  {
+   "a": "markius_v9_m1",
+   "a_guanya": true,
+   "b": "markius_v9",
+   "b_guanya": false,
+   "b_millor_en_partits": 3,
+   "dif_spellF1_b_menys_a": -0.004703348524131301,
+   "ic95": [
+    -0.010511006511738481,
+    -0.00039337945927761666
+   ],
+   "partits": 10
+  },
+  {
+   "a": "markius_v9_m1",
+   "a_guanya": false,
+   "b": "fusio_v7d",
+   "b_guanya": false,
+   "b_millor_en_partits": 3,
+   "dif_spellF1_b_menys_a": -0.004925060274583293,
+   "ic95": [
+    -0.011091551392546207,
+    0.0013632000305225376
+   ],
+   "partits": 10
+  },
+  {
+   "a": "markius_v9",
+   "a_guanya": false,
+   "b": "fusio_v7d",
+   "b_guanya": false,
+   "b_millor_en_partits": 5,
+   "dif_spellF1_b_menys_a": -0.00022171175045199165,
+   "ic95": [
+    -0.005044194322902625,
+    0.00408978015801526
+   ],
+   "partits": 10
+  }
+ ],
+ "etiqueta": "label_acc",
+ "finestra_derivades": 11,
+ "finestra_sg": null,
+ "git_head": "b144bece3d506609110040066bc5c8f1d90386fd",
+ "llavors": [
+  0,
+  1,
+  2
+ ],
+ "models": [
+  "markius_v9_m1x",
+  "markius_v9_m1",
+  "markius_v9",
+  "fusio_v7d"
+ ],
+ "partit": {
+  "_prior_domini": {
+   "interval": [
+    132.2,
+    396.6
+   ],
+   "minuts_idsse": [
+    97.31,
+    94.37,
+    91.48,
+    95.02,
+    97.47,
+    94.9,
+    97.87
+   ],
+   "minuts_partit": 105.9,
+   "possessions_idsse": [
+    243,
+    270,
+    223,
+    264,
+    219,
+    233,
+    217
+   ],
+   "prior": 264.4
+  },
+  "fusio_v7d": {
+   "public_no_s_hi_decideix": {
+    "macroF1": 0.6742,
+    "spellF1": 0.4774
+   },
+   "sanitat": {
+    "domini": true,
+    "durada_mitjana_s": 17.84,
+    "pct_D": 41.59,
+    "pct_X": 0.0,
+    "possessions": 208
+   }
+  },
+  "janv1": {
+   "public_no_s_hi_decideix": {
+    "macroF1": 0.8553,
+    "spellF1": 0.5714
+   },
+   "sanitat": {
+    "domini": true,
+    "durada_mitjana_s": 10.55,
+    "pct_D": 50.0,
+    "pct_X": 0.0,
+    "possessions": 301
+   }
+  },
+  "markius_v9": {
+   "public_no_s_hi_decideix": {
+    "macroF1": 0.6802,
+    "spellF1": 0.4828
+   },
+   "sanitat": {
+    "domini": true,
+    "durada_mitjana_s": 18.31,
+    "pct_D": 40.06,
+    "pct_X": 0.0,
+    "possessions": 208
+   }
+  },
+  "markius_v9_m1": {
+   "public_no_s_hi_decideix": {
+    "macroF1": 0.6802,
+    "spellF1": 0.4828
+   },
+   "sanitat": {
+    "domini": true,
+    "durada_mitjana_s": 18.06,
+    "pct_D": 40.03,
+    "pct_X": 0.0,
+    "possessions": 211
+   }
+  },
+  "markius_v9_m1x": {
+   "public_no_s_hi_decideix": {
+    "macroF1": 0.6836,
+    "spellF1": 0.4828
+   },
+   "sanitat": {
+    "domini": true,
+    "durada_mitjana_s": 17.69,
+    "pct_D": 39.85,
+    "pct_X": 0.0,
+    "possessions": 216
+   }
+  }
+ },
+ "principal": {
+  "fusio_v7d": {
+   "ece": null,
+   "ece_idsse": null,
+   "ece_metrica": null,
+   "ece_skillcorner": null,
+   "macroF1": [
+    0.8906969628428808,
+    0.8745719916571938,
+    0.9059198467354677
+   ],
+   "macroF1_idsse": 0.9056264815448548,
+   "macroF1_metrica": 0.8558614192049413,
+   "macroF1_skillcorner": 0.8889976575205717,
+   "n_seleccio": 10,
+   "per_partit": {
+    "idsse/DFL-MAT-J03WMX": {
+     "ece": null,
+     "macroF1": 0.9002032429437438,
+     "precisio": 0.9085745995642821,
+     "spellF1": 0.6894244416490638
+    },
+    "idsse/DFL-MAT-J03WN1": {
+     "ece": null,
+     "macroF1": 0.9045192423796055,
+     "precisio": 0.9244089667514364,
+     "spellF1": 0.674991883037999
+    },
+    "idsse/DFL-MAT-J03WOH": {
+     "ece": null,
+     "macroF1": 0.9102181278096895,
+     "precisio": 0.9234523453802969,
+     "spellF1": 0.6867127082569645
+    },
+    "idsse/DFL-MAT-J03WOY": {
+     "ece": null,
+     "macroF1": 0.9002108391227308,
+     "precisio": 0.9126834344780814,
+     "spellF1": 0.690658693003055
+    },
+    "idsse/DFL-MAT-J03WPY": {
+     "ece": null,
+     "macroF1": 0.9240417833128398,
+     "precisio": 0.9364270569728473,
+     "spellF1": 0.7856494742622742
+    },
+    "idsse/DFL-MAT-J03WQQ": {
+     "ece": null,
+     "macroF1": 0.9193928564495848,
+     "precisio": 0.9246473332209296,
+     "spellF1": 0.7559588021559304
+    },
+    "idsse/DFL-MAT-J03WR9": {
+     "ece": null,
+     "macroF1": 0.88079927879579,
+     "precisio": 0.8928244635319814,
+     "spellF1": 0.6533090285160162
+    },
+    "metrica/Sample_Game_1": {
+     "ece": null,
+     "macroF1": 0.8541355812684129,
+     "precisio": 0.8554850909978203,
+     "spellF1": 0.7370291348862779
+    },
+    "metrica/Sample_Game_2": {
+     "ece": null,
+     "macroF1": 0.850798244116247,
+     "precisio": 0.8510287008488447,
+     "spellF1": 0.6976008380790573
+    },
+    "metrica/Sample_Game_3": {
+     "ece": null,
+     "macroF1": 0.862650432230164,
+     "precisio": 0.8629534114481135,
+     "spellF1": 0.5919905752780226
+    },
+    "skillcorner/1874553": {
+     "ece": null,
+     "macroF1": 0.8950400330687914,
+     "precisio": 0.9007696224417655,
+     "spellF1": 0.74311679297515
+    },
+    "skillcorner/1886347": {
+     "ece": null,
+     "macroF1": 0.8991036839910348,
+     "precisio": 0.9025358611949662,
+     "spellF1": 0.6683469505616597
+    },
+    "skillcorner/1899585": {
+     "ece": null,
+     "macroF1": 0.8828552814309066,
+     "precisio": 0.8827034417568321,
+     "spellF1": 0.677506728756355
+    },
+    "skillcorner/1925299": {
+     "ece": null,
+     "macroF1": 0.8800539456291506,
+     "precisio": 0.8862232187344296,
+     "spellF1": 0.6916061423356563
+    },
+    "skillcorner/1927964": {
+     "ece": null,
+     "macroF1": 0.9207787117289704,
+     "precisio": 0.9284202304237453,
+     "spellF1": 0.812119318418531
+    },
+    "skillcorner/1953632": {
+     "ece": null,
+     "macroF1": 0.9238704417774243,
+     "precisio": 0.9341792979871727,
+     "spellF1": 0.7781061850027365
+    },
+    "skillcorner/1959846": {
+     "ece": null,
+     "macroF1": 0.9141853676642994,
+     "precisio": 0.9132248060042172,
+     "spellF1": 0.7636309330385737
+    },
+    "skillcorner/1986691": {
+     "ece": null,
+     "macroF1": 0.8795435474136286,
+     "precisio": 0.8814440692149068,
+     "spellF1": 0.6672182373646809
+    },
+    "skillcorner/1996435": {
+     "ece": null,
+     "macroF1": 0.8705157919309601,
+     "precisio": 0.8741572730704924,
+     "spellF1": 0.6752778482828314
+    },
+    "skillcorner/1996436": {
+     "ece": null,
+     "macroF1": 0.8742396068335174,
+     "precisio": 0.8762696581536584,
+     "spellF1": 0.6261617703731245
+    },
+    "skillcorner/2006229": {
+     "ece": null,
+     "macroF1": 0.8851681013365655,
+     "precisio": 0.8838380811990908,
+     "spellF1": 0.7012065369885868
+    },
+    "skillcorner/2006363": {
+     "ece": null,
+     "macroF1": 0.9136835111436789,
+     "precisio": 0.9144115462167038,
+     "spellF1": 0.7449261278531796
+    },
+    "skillcorner/2007448": {
+     "ece": null,
+     "macroF1": 0.8900163814694654,
+     "precisio": 0.8901039764000677,
+     "spellF1": 0.6985477503760515
+    },
+    "skillcorner/2007721": {
+     "ece": null,
+     "macroF1": 0.8951707615457373,
+     "precisio": 0.8959065998476058,
+     "spellF1": 0.7055658290728454
+    },
+    "skillcorner/2010085": {
+     "ece": null,
+     "macroF1": 0.8737992326208485,
+     "precisio": 0.8800485073248075,
+     "spellF1": 0.6568379235303996
+    },
+    "skillcorner/2011166": {
+     "ece": null,
+     "macroF1": 0.8824098098305879,
+     "precisio": 0.8828781807365503,
+     "spellF1": 0.6787337639564616
+    },
+    "skillcorner/2013725": {
+     "ece": null,
+     "macroF1": 0.8661163564320998,
+     "precisio": 0.8640205716254291,
+     "spellF1": 0.698037491488431
+    },
+    "skillcorner/2015213": {
+     "ece": null,
+     "macroF1": 0.8776177648824502,
+     "precisio": 0.8807686353560406,
+     "spellF1": 0.6450655754821503
+    },
+    "skillcorner/2016236": {
+     "ece": null,
+     "macroF1": 0.8760333262929727,
+     "precisio": 0.8755311381617532,
+     "spellF1": 0.6540787362705172
+    },
+    "skillcorner/2017461": {
+     "ece": null,
+     "macroF1": 0.8797514933883451,
+     "precisio": 0.8877019201462968,
+     "spellF1": 0.6443341591202952
+    }
+   },
+   "precisio": [
+    0.8992485403194633,
+    0.8797339627707649,
+    0.9171979308125925
+   ],
+   "precisio_idsse": 0.9175740285571221,
+   "precisio_metrica": 0.8564890677649263,
+   "precisio_skillcorner": 0.8917568317998267,
+   "spellF1": [
+    0.6963325579124661,
+    0.6643097454548764,
+    0.728166672819499
+   ],
+   "spellF1_idsse": 0.7052435758401863,
+   "spellF1_metrica": 0.6755401827477859,
+   "spellF1_skillcorner": 0.6965212400624108
+  },
+  "markius_v9": {
+   "ece": null,
+   "ece_idsse": null,
+   "ece_metrica": null,
+   "ece_skillcorner": null,
+   "macroF1": [
+    0.8920308881940334,
+    0.8755903328648512,
+    0.9072106637900601
+   ],
+   "macroF1_idsse": 0.9076006207548816,
+   "macroF1_metrica": 0.8557015122187214,
+   "macroF1_skillcorner": 0.8999763832006451,
+   "n_seleccio": 10,
+   "per_partit": {
+    "idsse/DFL-MAT-J03WMX": {
+     "ece": null,
+     "macroF1": 0.9037752664739767,
+     "precisio": 0.9115273419837497,
+     "spellF1": 0.7058176241730955
+    },
+    "idsse/DFL-MAT-J03WN1": {
+     "ece": null,
+     "macroF1": 0.9062450826776961,
+     "precisio": 0.9249976452858624,
+     "spellF1": 0.680869154897863
+    },
+    "idsse/DFL-MAT-J03WOH": {
+     "ece": null,
+     "macroF1": 0.9091018776499173,
+     "precisio": 0.9225777926775646,
+     "spellF1": 0.6875632015597027
+    },
+    "idsse/DFL-MAT-J03WOY": {
+     "ece": null,
+     "macroF1": 0.9001445595015634,
+     "precisio": 0.9125361022438933,
+     "spellF1": 0.6921126995037609
+    },
+    "idsse/DFL-MAT-J03WPY": {
+     "ece": null,
+     "macroF1": 0.9232518163349465,
+     "precisio": 0.9359984497184416,
+     "spellF1": 0.7813767293571869
+    },
+    "idsse/DFL-MAT-J03WQQ": {
+     "ece": null,
+     "macroF1": 0.9253525321604977,
+     "precisio": 0.9310496637254352,
+     "spellF1": 0.7495370738210004
+    },
+    "idsse/DFL-MAT-J03WR9": {
+     "ece": null,
+     "macroF1": 0.8853332104855727,
+     "precisio": 0.8968796190969218,
+     "spellF1": 0.658723545241081
+    },
+    "metrica/Sample_Game_1": {
+     "ece": null,
+     "macroF1": 0.8533688056345653,
+     "precisio": 0.8545982229792665,
+     "spellF1": 0.7307775300898814
+    },
+    "metrica/Sample_Game_2": {
+     "ece": null,
+     "macroF1": 0.8533858152786274,
+     "precisio": 0.8535766624795401,
+     "spellF1": 0.6959635743464215
+    },
+    "metrica/Sample_Game_3": {
+     "ece": null,
+     "macroF1": 0.8603499157429714,
+     "precisio": 0.8607832968922278,
+     "spellF1": 0.5828015636391872
+    },
+    "skillcorner/1874553": {
+     "ece": null,
+     "macroF1": 0.9116617293650466,
+     "precisio": 0.9164294793601254,
+     "spellF1": 0.8110758899220437
+    },
+    "skillcorner/1886347": {
+     "ece": null,
+     "macroF1": 0.9126843214486176,
+     "precisio": 0.9170150686488739,
+     "spellF1": 0.7198969374609371
+    },
+    "skillcorner/1899585": {
+     "ece": null,
+     "macroF1": 0.8981079763141037,
+     "precisio": 0.8977488198324415,
+     "spellF1": 0.7066600711374932
+    },
+    "skillcorner/1925299": {
+     "ece": null,
+     "macroF1": 0.889535688550768,
+     "precisio": 0.8951295465869458,
+     "spellF1": 0.7088882032599061
+    },
+    "skillcorner/1927964": {
+     "ece": null,
+     "macroF1": 0.9237998611240966,
+     "precisio": 0.9349423940636594,
+     "spellF1": 0.8071922544951592
+    },
+    "skillcorner/1953632": {
+     "ece": null,
+     "macroF1": 0.9415779647584919,
+     "precisio": 0.9518437635950914,
+     "spellF1": 0.845662100456621
+    },
+    "skillcorner/1959846": {
+     "ece": null,
+     "macroF1": 0.9309641013997387,
+     "precisio": 0.9304669899576158,
+     "spellF1": 0.794958263687433
+    },
+    "skillcorner/1986691": {
+     "ece": null,
+     "macroF1": 0.8845128703305231,
+     "precisio": 0.8864150304334398,
+     "spellF1": 0.7062146892655367
+    },
+    "skillcorner/1996435": {
+     "ece": null,
+     "macroF1": 0.8870952705467346,
+     "precisio": 0.892791650935764,
+     "spellF1": 0.7236524384831693
+    },
+    "skillcorner/1996436": {
+     "ece": null,
+     "macroF1": 0.8782297828446529,
+     "precisio": 0.8800222770307901,
+     "spellF1": 0.6379992905901698
+    },
+    "skillcorner/2006229": {
+     "ece": null,
+     "macroF1": 0.8973813767921324,
+     "precisio": 0.8976682126692314,
+     "spellF1": 0.7106269534840962
+    },
+    "skillcorner/2006363": {
+     "ece": null,
+     "macroF1": 0.9216473710242968,
+     "precisio": 0.9233562256484893,
+     "spellF1": 0.7870428422152559
+    },
+    "skillcorner/2007448": {
+     "ece": null,
+     "macroF1": 0.8969324300665509,
+     "precisio": 0.8970998951201404,
+     "spellF1": 0.7227817745803357
+    },
+    "skillcorner/2007721": {
+     "ece": null,
+     "macroF1": 0.9019569118439973,
+     "precisio": 0.9035446339604948,
+     "spellF1": 0.7256189793806227
+    },
+    "skillcorner/2010085": {
+     "ece": null,
+     "macroF1": 0.8854703832587544,
+     "precisio": 0.8916613758746603,
+     "spellF1": 0.6499917963113162
+    },
+    "skillcorner/2011166": {
+     "ece": null,
+     "macroF1": 0.883297864752838,
+     "precisio": 0.8846235871187886,
+     "spellF1": 0.7079601990049751
+    },
+    "skillcorner/2013725": {
+     "ece": null,
+     "macroF1": 0.8864411882245992,
+     "precisio": 0.8852853000643889,
+     "spellF1": 0.7292661361626879
+    },
+    "skillcorner/2015213": {
+     "ece": null,
+     "macroF1": 0.8874863744541548,
+     "precisio": 0.8897079409623752,
+     "spellF1": 0.6612550568045586
+    },
+    "skillcorner/2016236": {
+     "ece": null,
+     "macroF1": 0.890083949706887,
+     "precisio": 0.890967559178267,
+     "spellF1": 0.7025298469200908
+    },
+    "skillcorner/2017461": {
+     "ece": null,
+     "macroF1": 0.8906602472059149,
+     "precisio": 0.898120491720004,
+     "spellF1": 0.6712591086256566
+    }
+   },
+   "precisio": [
+    0.9004524797082902,
+    0.8808421852591469,
+    0.918672371517111
+   ],
+   "precisio_idsse": 0.9193666592474097,
+   "precisio_metrica": 0.8563193941170114,
+   "precisio_skillcorner": 0.9032420121380793,
+   "spellF1": [
+    0.696554269662918,
+    0.6640527138455855,
+    0.7274965097943393
+   ],
+   "spellF1_idsse": 0.7080000040790987,
+   "spellF1_metrica": 0.6698475560251634,
+   "spellF1_skillcorner": 0.7265266416124032
+  },
+  "markius_v9_m1": {
+   "ece": null,
+   "ece_idsse": null,
+   "ece_metrica": null,
+   "ece_skillcorner": null,
+   "macroF1": [
+    0.893153655454384,
+    0.8762451842666575,
+    0.9088901599359688
+   ],
+   "macroF1_idsse": 0.9089612389938546,
+   "macroF1_metrica": 0.8562692938622858,
+   "macroF1_skillcorner": 0.90009246753654,
+   "n_seleccio": 10,
+   "per_partit": {
+    "idsse/DFL-MAT-J03WMX": {
+     "ece": null,
+     "macroF1": 0.9043623326238982,
+     "precisio": 0.912137073017004,
+     "spellF1": 0.7058176241730955
+    },
+    "idsse/DFL-MAT-J03WN1": {
+     "ece": null,
+     "macroF1": 0.9069077191084777,
+     "precisio": 0.9256169351040784,
+     "spellF1": 0.683264310032048
+    },
+    "idsse/DFL-MAT-J03WOH": {
+     "ece": null,
+     "macroF1": 0.9118236626454426,
+     "precisio": 0.9248321952001634,
+     "spellF1": 0.7112753449833923
+    },
+    "idsse/DFL-MAT-J03WOY": {
+     "ece": null,
+     "macroF1": 0.9002381985198019,
+     "precisio": 0.9126413395540277,
+     "spellF1": 0.6916403676835863
+    },
+    "idsse/DFL-MAT-J03WPY": {
+     "ece": null,
+     "macroF1": 0.9287249222942334,
+     "precisio": 0.9407245286460114,
+     "spellF1": 0.7987567909850398
+    },
+    "idsse/DFL-MAT-J03WQQ": {
+     "ece": null,
+     "macroF1": 0.925454706570796,
+     "precisio": 0.9311456752655539,
+     "spellF1": 0.7509776656329317
+    },
+    "idsse/DFL-MAT-J03WR9": {
+     "ece": null,
+     "macroF1": 0.8852171311943323,
+     "precisio": 0.8967774455244569,
+     "spellF1": 0.6585067582888482
+    },
+    "metrica/Sample_Game_1": {
+     "ece": null,
+     "macroF1": 0.8537623947829566,
+     "precisio": 0.8550064638132039,
+     "spellF1": 0.7300574281989292
+    },
+    "metrica/Sample_Game_2": {
+     "ece": null,
+     "macroF1": 0.854073356160257,
+     "precisio": 0.8542642076814738,
+     "spellF1": 0.6989254385964913
+    },
+    "metrica/Sample_Game_3": {
+     "ece": null,
+     "macroF1": 0.8609721306436439,
+     "precisio": 0.8613369213806507,
+     "spellF1": 0.5833544532961316
+    },
+    "skillcorner/1874553": {
+     "ece": null,
+     "macroF1": 0.9116243623138424,
+     "precisio": 0.9163965112402973,
+     "spellF1": 0.8110758899220437
+    },
+    "skillcorner/1886347": {
+     "ece": null,
+     "macroF1": 0.9126838906950404,
+     "precisio": 0.9170150686488739,
+     "spellF1": 0.7198969374609371
+    },
+    "skillcorner/1899585": {
+     "ece": null,
+     "macroF1": 0.8982549068324003,
+     "precisio": 0.8978894834270154,
+     "spellF1": 0.7066600711374932
+    },
+    "skillcorner/1925299": {
+     "ece": null,
+     "macroF1": 0.8892292110189333,
+     "precisio": 0.8948773044344792,
+     "spellF1": 0.7065648033470282
+    },
+    "skillcorner/1927964": {
+     "ece": null,
+     "macroF1": 0.9237974005686885,
+     "precisio": 0.9349423940636594,
+     "spellF1": 0.8071922544951592
+    },
+    "skillcorner/1953632": {
+     "ece": null,
+     "macroF1": 0.9415282853120481,
+     "precisio": 0.951809304749721,
+     "spellF1": 0.845662100456621
+    },
+    "skillcorner/1959846": {
+     "ece": null,
+     "macroF1": 0.9306373266093687,
+     "precisio": 0.9301615181946619,
+     "spellF1": 0.794958263687433
+    },
+    "skillcorner/1986691": {
+     "ece": null,
+     "macroF1": 0.8835943294346907,
+     "precisio": 0.8854437504358308,
+     "spellF1": 0.696045197740113
+    },
+    "skillcorner/1996435": {
+     "ece": null,
+     "macroF1": 0.8896798829184857,
+     "precisio": 0.8949715045934236,
+     "spellF1": 0.7267383500527043
+    },
+    "skillcorner/1996436": {
+     "ece": null,
+     "macroF1": 0.8782791851522701,
+     "precisio": 0.8800753175802901,
+     "spellF1": 0.6379992905901698
+    },
+    "skillcorner/2006229": {
+     "ece": null,
+     "macroF1": 0.898817134933568,
+     "precisio": 0.8990224629778326,
+     "spellF1": 0.7130413991245831
+    },
+    "skillcorner/2006363": {
+     "ece": null,
+     "macroF1": 0.9214444229260149,
+     "precisio": 0.9231742999651309,
+     "spellF1": 0.7870428422152559
+    },
+    "skillcorner/2007448": {
+     "ece": null,
+     "macroF1": 0.8969131177249324,
+     "precisio": 0.897080254697007,
+     "spellF1": 0.7223021582733812
+    },
+    "skillcorner/2007721": {
+     "ece": null,
+     "macroF1": 0.9019569202297802,
+     "precisio": 0.9035446339604948,
+     "spellF1": 0.7256189793806227
+    },
+    "skillcorner/2010085": {
+     "ece": null,
+     "macroF1": 0.8855635856349918,
+     "precisio": 0.8916949682048595,
+     "spellF1": 0.6503946160494833
+    },
+    "skillcorner/2011166": {
+     "ece": null,
+     "macroF1": 0.8833142780380374,
+     "precisio": 0.8846404238363021,
+     "spellF1": 0.7079601990049751
+    },
+    "skillcorner/2013725": {
+     "ece": null,
+     "macroF1": 0.8863573915304919,
+     "precisio": 0.885203276039552,
+     "spellF1": 0.7292661361626879
+    },
+    "skillcorner/2015213": {
+     "ece": null,
+     "macroF1": 0.8864700262419184,
+     "precisio": 0.8887659212853629,
+     "spellF1": 0.6560301248323533
+    },
+    "skillcorner/2016236": {
+     "ece": null,
+     "macroF1": 0.8910502740965116,
+     "precisio": 0.8918572779393635,
+     "spellF1": 0.7044371784297553
+    },
+    "skillcorner/2017461": {
+     "ece": null,
+     "macroF1": 0.8906534185187892,
+     "precisio": 0.898115411967896,
+     "spellF1": 0.6712591086256566
+    }
+   },
+   "precisio": [
+    0.9014482785186624,
+    0.8814480263930732,
+    0.9201482708600333
+   ],
+   "precisio_idsse": 0.9205535989016136,
+   "precisio_metrica": 0.8568691976251094,
+   "precisio_skillcorner": 0.9033340544121027,
+   "spellF1": [
+    0.7012576181870493,
+    0.66739221466091,
+    0.7349887553128196
+   ],
+   "spellF1_idsse": 0.7143198373969916,
+   "spellF1_metrica": 0.670779106697184,
+   "spellF1_skillcorner": 0.7260072950494229
+  },
+  "markius_v9_m1x": {
+   "ece": null,
+   "ece_idsse": null,
+   "ece_metrica": null,
+   "ece_skillcorner": null,
+   "macroF1": [
+    0.8934383608064319,
+    0.8765289338403583,
+    0.9091146968239882
+   ],
+   "macroF1_idsse": 0.9094321733794188,
+   "macroF1_metrica": 0.8561194648027968,
+   "macroF1_skillcorner": 0.8916439240396045,
+   "n_seleccio": 10,
+   "per_partit": {
+    "idsse/DFL-MAT-J03WMX": {
+     "ece": null,
+     "macroF1": 0.9038492189147695,
+     "precisio": 0.9118219311346477,
+     "spellF1": 0.699240227335264
+    },
+    "idsse/DFL-MAT-J03WN1": {
+     "ece": null,
+     "macroF1": 0.90573791248967,
+     "precisio": 0.9246044080248659,
+     "spellF1": 0.6906366065682841
+    },
+    "idsse/DFL-MAT-J03WOH": {
+     "ece": null,
+     "macroF1": 0.9112596120066553,
+     "precisio": 0.9243390446483447,
+     "spellF1": 0.7122209325287742
+    },
+    "idsse/DFL-MAT-J03WOY": {
+     "ece": null,
+     "macroF1": 0.9042489595968962,
+     "precisio": 0.9152722723073866,
+     "spellF1": 0.7130314531454478
+    },
+    "idsse/DFL-MAT-J03WPY": {
+     "ece": null,
+     "macroF1": 0.9276501842763872,
+     "precisio": 0.9399060711761621,
+     "spellF1": 0.788388157232932
+    },
+    "idsse/DFL-MAT-J03WQQ": {
+     "ece": null,
+     "macroF1": 0.9254305382148357,
+     "precisio": 0.9311456752655539,
+     "spellF1": 0.7544626558052802
+    },
+    "idsse/DFL-MAT-J03WR9": {
+     "ece": null,
+     "macroF1": 0.8878487881567173,
+     "precisio": 0.8988299990690853,
+     "spellF1": 0.6606860709691377
+    },
+    "metrica/Sample_Game_1": {
+     "ece": null,
+     "macroF1": 0.8534807328688854,
+     "precisio": 0.8548328441481962,
+     "spellF1": 0.7217368795703099
+    },
+    "metrica/Sample_Game_2": {
+     "ece": null,
+     "macroF1": 0.8532612465573081,
+     "precisio": 0.853571904381257,
+     "spellF1": 0.6842616230196777
+    },
+    "metrica/Sample_Game_3": {
+     "ece": null,
+     "macroF1": 0.8616164149821967,
+     "precisio": 0.862016688157575,
+     "spellF1": 0.5884078232151683
+    },
+    "skillcorner/1874553": {
+     "ece": null,
+     "macroF1": 0.8999626549645191,
+     "precisio": 0.9045939243418282,
+     "spellF1": 0.768375930504026
+    },
+    "skillcorner/1886347": {
+     "ece": null,
+     "macroF1": 0.902798069373234,
+     "precisio": 0.9071756072299201,
+     "spellF1": 0.6928287974602524
+    },
+    "skillcorner/1899585": {
+     "ece": null,
+     "macroF1": 0.8899017922973235,
+     "precisio": 0.8888982664618604,
+     "spellF1": 0.6793870940960313
+    },
+    "skillcorner/1925299": {
+     "ece": null,
+     "macroF1": 0.8822823707441575,
+     "precisio": 0.887826980568012,
+     "spellF1": 0.6822244836131551
+    },
+    "skillcorner/1927964": {
+     "ece": null,
+     "macroF1": 0.9192066700996725,
+     "precisio": 0.929568443663347,
+     "spellF1": 0.7907482993197279
+    },
+    "skillcorner/1953632": {
+     "ece": null,
+     "macroF1": 0.9335050673326574,
+     "precisio": 0.9437631643557703,
+     "spellF1": 0.8090593496929386
+    },
+    "skillcorner/1959846": {
+     "ece": null,
+     "macroF1": 0.923611495816936,
+     "precisio": 0.9227750412599013,
+     "spellF1": 0.7739188536456706
+    },
+    "skillcorner/1986691": {
+     "ece": null,
+     "macroF1": 0.8759969795954832,
+     "precisio": 0.8773995596864012,
+     "spellF1": 0.670604781997187
+    },
+    "skillcorner/1996435": {
+     "ece": null,
+     "macroF1": 0.8828942255197286,
+     "precisio": 0.8869262715063911,
+     "spellF1": 0.695794346498572
+    },
+    "skillcorner/1996436": {
+     "ece": null,
+     "macroF1": 0.8673762626766583,
+     "precisio": 0.8697987111146471,
+     "spellF1": 0.5985931905370749
+    },
+    "skillcorner/2006229": {
+     "ece": null,
+     "macroF1": 0.88753041354367,
+     "precisio": 0.8866424579443359,
+     "spellF1": 0.6696830573864722
+    },
+    "skillcorner/2006363": {
+     "ece": null,
+     "macroF1": 0.9122292419137553,
+     "precisio": 0.9128841285001744,
+     "spellF1": 0.7446465948560695
+    },
+    "skillcorner/2007448": {
+     "ece": null,
+     "macroF1": 0.8897815321622019,
+     "precisio": 0.8899311406764947,
+     "spellF1": 0.7013192110881449
+    },
+    "skillcorner/2007721": {
+     "ece": null,
+     "macroF1": 0.8950189858082002,
+     "precisio": 0.8958003634019108,
+     "spellF1": 0.7095419254658385
+    },
+    "skillcorner/2010085": {
+     "ece": null,
+     "macroF1": 0.8775332832466778,
+     "precisio": 0.8835656242966606,
+     "spellF1": 0.6370923738899571
+    },
+    "skillcorner/2011166": {
+     "ece": null,
+     "macroF1": 0.872947537972574,
+     "precisio": 0.8735169657990145,
+     "spellF1": 0.6519174452009338
+    },
+    "skillcorner/2013725": {
+     "ece": null,
+     "macroF1": 0.8765643840069929,
+     "precisio": 0.8748559453063803,
+     "spellF1": 0.7100095490716182
+    },
+    "skillcorner/2015213": {
+     "ece": null,
+     "macroF1": 0.8798203784386328,
+     "precisio": 0.8828964140670547,
+     "spellF1": 0.6387984171929474
+    },
+    "skillcorner/2016236": {
+     "ece": null,
+     "macroF1": 0.884680073463412,
+     "precisio": 0.8847674562421949,
+     "spellF1": 0.6775973527929349
+    },
+    "skillcorner/2017461": {
+     "ece": null,
+     "macroF1": 0.8792370618156028,
+     "precisio": 0.8869094788174338,
+     "spellF1": 0.6277421073893573
+    }
+   },
+   "precisio": [
+    0.9016340838313074,
+    0.881617312665499,
+    0.9202766259793714
+   ],
+   "precisio_idsse": 0.9208456288037209,
+   "precisio_metrica": 0.8568071455623428,
+   "precisio_skillcorner": 0.8945247972619865,
+   "spellF1": [
+    0.7013072429390276,
+    0.66947843291384,
+    0.73290353922874
+   ],
+   "spellF1_idsse": 0.71695230051216,
+   "spellF1_metrica": 0.6648021086017186,
+   "spellF1_skillcorner": 0.6964941580849455
+  }
+ },
+ "ranquing_per_llavor": {
+  "0": [
+   "markius_v9_m1",
+   "markius_v9_m1x",
+   "markius_v9",
+   "fusio_v7d"
+  ],
+  "1": [
+   "markius_v9_m1x",
+   "markius_v9_m1",
+   "fusio_v7d",
+   "markius_v9"
+  ],
+  "2": [
+   "markius_v9_m1",
+   "markius_v9_m1x",
+   "markius_v9",
+   "fusio_v7d"
+  ]
+ },
+ "robustesa": {
+  "etiqueta": "label_dur",
+  "fusio_v7d": {
+   "ece": null,
+   "ece_idsse": null,
+   "ece_metrica": null,
+   "ece_skillcorner": null,
+   "macroF1": [
+    0.8897578045597052,
+    0.8744940738215052,
+    0.904750652535554
+   ],
+   "macroF1_idsse": 0.9045190322484037,
+   "macroF1_metrica": 0.8553149399527422,
+   "macroF1_skillcorner": 0.888133762030287,
+   "n_seleccio": 10,
+   "per_partit": {
+    "idsse/DFL-MAT-J03WMX": {
+     "ece": null,
+     "macroF1": 0.9012829595496897,
+     "precisio": 0.9095200252113506,
+     "spellF1": 0.7076547536147239
+    },
+    "idsse/DFL-MAT-J03WN1": {
+     "ece": null,
+     "macroF1": 0.90762409039792,
+     "precisio": 0.9266294621832909,
+     "spellF1": 0.6989230356329773
+    },
+    "idsse/DFL-MAT-J03WOH": {
+     "ece": null,
+     "macroF1": 0.9100232011038845,
+     "precisio": 0.9233235917879501,
+     "spellF1": 0.7127100292702022
+    },
+    "idsse/DFL-MAT-J03WOY": {
+     "ece": null,
+     "macroF1": 0.8880817197181691,
+     "precisio": 0.9029548298078834,
+     "spellF1": 0.685787562301257
+    },
+    "idsse/DFL-MAT-J03WPY": {
+     "ece": null,
+     "macroF1": 0.9215576849968361,
+     "precisio": 0.9346328340514786,
+     "spellF1": 0.7890677800250213
+    },
+    "idsse/DFL-MAT-J03WQQ": {
+     "ece": null,
+     "macroF1": 0.9166702817014399,
+     "precisio": 0.9222774874014125,
+     "spellF1": 0.7669382530149781
+    },
+    "idsse/DFL-MAT-J03WR9": {
+     "ece": null,
+     "macroF1": 0.8863932882708866,
+     "precisio": 0.8972474439577955,
+     "spellF1": 0.6683510715973884
+    },
+    "metrica/Sample_Game_1": {
+     "ece": null,
+     "macroF1": 0.8532113805518767,
+     "precisio": 0.8543307548466869,
+     "spellF1": 0.6323702039222349
+    },
+    "metrica/Sample_Game_2": {
+     "ece": null,
+     "macroF1": 0.8481263889542391,
+     "precisio": 0.8481000913554871,
+     "spellF1": 0.6238640535320186
+    },
+    "metrica/Sample_Game_3": {
+     "ece": null,
+     "macroF1": 0.8646070503521108,
+     "precisio": 0.8652496682925007,
+     "spellF1": 0.6348891385868763
+    },
+    "skillcorner/1874553": {
+     "ece": null,
+     "macroF1": 0.8948625568300846,
+     "precisio": 0.9004765724877376,
+     "spellF1": 0.744538571720892
+    },
+    "skillcorner/1886347": {
+     "ece": null,
+     "macroF1": 0.8978745455419407,
+     "precisio": 0.9010075237986973,
+     "spellF1": 0.6792627226186857
+    },
+    "skillcorner/1899585": {
+     "ece": null,
+     "macroF1": 0.8811624093637856,
+     "precisio": 0.8808635619398072,
+     "spellF1": 0.6771955719557196
+    },
+    "skillcorner/1925299": {
+     "ece": null,
+     "macroF1": 0.8765777844054964,
+     "precisio": 0.8827696811160936,
+     "spellF1": 0.6779888233160607
+    },
+    "skillcorner/1927964": {
+     "ece": null,
+     "macroF1": 0.9191756716173699,
+     "precisio": 0.9263698496387424,
+     "spellF1": 0.7885650936360875
+    },
+    "skillcorner/1953632": {
+     "ece": null,
+     "macroF1": 0.9205928512162845,
+     "precisio": 0.9308626341202872,
+     "spellF1": 0.7614809472292342
+    },
+    "skillcorner/1959846": {
+     "ece": null,
+     "macroF1": 0.9125835062291187,
+     "precisio": 0.911489556684104,
+     "spellF1": 0.7477051259838191
+    },
+    "skillcorner/1986691": {
+     "ece": null,
+     "macroF1": 0.8805828559150156,
+     "precisio": 0.8822858452128348,
+     "spellF1": 0.6761807778610134
+    },
+    "skillcorner/1996435": {
+     "ece": null,
+     "macroF1": 0.872977118591773,
+     "precisio": 0.8769214173992772,
+     "spellF1": 0.7127646221108691
+    },
+    "skillcorner/1996436": {
+     "ece": null,
+     "macroF1": 0.8749532401028096,
+     "precisio": 0.8770166458924514,
+     "spellF1": 0.6308942329443817
+    },
+    "skillcorner/2006229": {
+     "ece": null,
+     "macroF1": 0.8863503864327781,
+     "precisio": 0.8853361456997559,
+     "spellF1": 0.7045516886679238
+    },
+    "skillcorner/2006363": {
+     "ece": null,
+     "macroF1": 0.9131698043634303,
+     "precisio": 0.9138127075089826,
+     "spellF1": 0.7486527321596469
+    },
+    "skillcorner/2007448": {
+     "ece": null,
+     "macroF1": 0.8873857736936942,
+     "precisio": 0.8874878720387152,
+     "spellF1": 0.6774881121213555
+    },
+    "skillcorner/2007721": {
+     "ece": null,
+     "macroF1": 0.8925870607669019,
+     "precisio": 0.8930492057909852,
+     "spellF1": 0.6996954442092056
+    },
+    "skillcorner/2010085": {
+     "ece": null,
+     "macroF1": 0.873996829380058,
+     "precisio": 0.8803105275003612,
+     "spellF1": 0.6558287548451626
+    },
+    "skillcorner/2011166": {
+     "ece": null,
+     "macroF1": 0.8816046674202198,
+     "precisio": 0.8819802224691607,
+     "spellF1": 0.6821173128488587
+    },
+    "skillcorner/2013725": {
+     "ece": null,
+     "macroF1": 0.8659370332099844,
+     "precisio": 0.8638155115633369,
+     "spellF1": 0.6961640335372393
+    },
+    "skillcorner/2015213": {
+     "ece": null,
+     "macroF1": 0.8773869100145314,
+     "precisio": 0.8805347773243347,
+     "spellF1": 0.6613268349692795
+    },
+    "skillcorner/2016236": {
+     "ece": null,
+     "macroF1": 0.8732266602391917,
+     "precisio": 0.8724749741662378,
+     "spellF1": 0.6223216875958392
+    },
+    "skillcorner/2017461": {
+     "ece": null,
+     "macroF1": 0.8796875752712735,
+     "precisio": 0.8872904602255409,
+     "spellF1": 0.6598299747599476
+    }
+   },
+   "precisio": [
+    0.8984266188895835,
+    0.8793913273621327,
+    0.9161216378609004
+   ],
+   "precisio_idsse": 0.9166550963430231,
+   "precisio_metrica": 0.8558935048315582,
+   "precisio_skillcorner": 0.8908077846288721,
+   "spellF1": [
+    0.6920555881497679,
+    0.6608783987966115,
+    0.7256219323150765
+   ],
+   "spellF1_idsse": 0.7184903550652211,
+   "spellF1_metrica": 0.6303744653470433,
+   "spellF1_skillcorner": 0.6952276532545612
+  },
+  "markius_v9": {
+   "ece": null,
+   "ece_idsse": null,
+   "ece_metrica": null,
+   "ece_skillcorner": null,
+   "macroF1": [
+    0.8907550782029159,
+    0.8746419406534442,
+    0.9062618938080202
+   ],
+   "macroF1_idsse": 0.9062733795369547,
+   "macroF1_metrica": 0.8545457084234914,
+   "macroF1_skillcorner": 0.898170232173779,
+   "n_seleccio": 10,
+   "per_partit": {
+    "idsse/DFL-MAT-J03WMX": {
+     "ece": null,
+     "macroF1": 0.9046109686474475,
+     "precisio": 0.9122649566794093,
+     "spellF1": 0.7228903898542073
+    },
+    "idsse/DFL-MAT-J03WN1": {
+     "ece": null,
+     "macroF1": 0.9084655724116085,
+     "precisio": 0.9265870773288123,
+     "spellF1": 0.710352536385214
+    },
+    "idsse/DFL-MAT-J03WOH": {
+     "ece": null,
+     "macroF1": 0.908387859286471,
+     "precisio": 0.9220506317428621,
+     "spellF1": 0.7091357222021518
+    },
+    "idsse/DFL-MAT-J03WOY": {
+     "ece": null,
+     "macroF1": 0.8878514575992963,
+     "precisio": 0.902667181160183,
+     "spellF1": 0.6875499095097778
+    },
+    "idsse/DFL-MAT-J03WPY": {
+     "ece": null,
+     "macroF1": 0.920969772678012,
+     "precisio": 0.934354695301279,
+     "spellF1": 0.7854250996452801
+    },
+    "idsse/DFL-MAT-J03WQQ": {
+     "ece": null,
+     "macroF1": 0.9233586043887514,
+     "precisio": 0.9293518986867495,
+     "spellF1": 0.7608941920209965
+    },
+    "idsse/DFL-MAT-J03WR9": {
+     "ece": null,
+     "macroF1": 0.890269421747098,
+     "precisio": 0.9007531327552579,
+     "spellF1": 0.6659306114625264
+    },
+    "metrica/Sample_Game_1": {
+     "ece": null,
+     "macroF1": 0.8528392712183209,
+     "precisio": 0.8538098958516631,
+     "spellF1": 0.6161783932524342
+    },
+    "metrica/Sample_Game_2": {
+     "ece": null,
+     "macroF1": 0.8492811160127139,
+     "precisio": 0.84928009972974,
+     "spellF1": 0.618438836893358
+    },
+    "metrica/Sample_Game_3": {
+     "ece": null,
+     "macroF1": 0.8615167380394394,
+     "precisio": 0.8622362691782998,
+     "spellF1": 0.622648804252067
+    },
+    "skillcorner/1874553": {
+     "ece": null,
+     "macroF1": 0.9075125340287847,
+     "precisio": 0.9120117513031566,
+     "spellF1": 0.7814715504879645
+    },
+    "skillcorner/1886347": {
+     "ece": null,
+     "macroF1": 0.9118515316178094,
+     "precisio": 0.9159330226134991,
+     "spellF1": 0.7318268509320154
+    },
+    "skillcorner/1899585": {
+     "ece": null,
+     "macroF1": 0.89522775125958,
+     "precisio": 0.8946092084015551,
+     "spellF1": 0.6967219447219447
+    },
+    "skillcorner/1925299": {
+     "ece": null,
+     "macroF1": 0.8874954641350062,
+     "precisio": 0.8929434479322372,
+     "spellF1": 0.6956368047569566
+    },
+    "skillcorner/1927964": {
+     "ece": null,
+     "macroF1": 0.9222180109054111,
+     "precisio": 0.9329154462019137,
+     "spellF1": 0.7827956989247312
+    },
+    "skillcorner/1953632": {
+     "ece": null,
+     "macroF1": 0.938306213512209,
+     "precisio": 0.9485874027076039,
+     "spellF1": 0.8269058295964126
+    },
+    "skillcorner/1959846": {
+     "ece": null,
+     "macroF1": 0.9261202013987456,
+     "precisio": 0.9252103300367839,
+     "spellF1": 0.7725433464405139
+    },
+    "skillcorner/1986691": {
+     "ece": null,
+     "macroF1": 0.8835183769388392,
+     "precisio": 0.885159837821145,
+     "spellF1": 0.6896921017402945
+    },
+    "skillcorner/1996435": {
+     "ece": null,
+     "macroF1": 0.8844014237833994,
+     "precisio": 0.8896499649425597,
+     "spellF1": 0.7018582123766421
+    },
+    "skillcorner/1996436": {
+     "ece": null,
+     "macroF1": 0.8811950954787036,
+     "precisio": 0.8828864667037951,
+     "spellF1": 0.6529726885961858
+    },
+    "skillcorner/2006229": {
+     "ece": null,
+     "macroF1": 0.8956708935058183,
+     "precisio": 0.8962061017165821,
+     "spellF1": 0.7010030839149488
+    },
+    "skillcorner/2006363": {
+     "ece": null,
+     "macroF1": 0.9204964597211167,
+     "precisio": 0.922060005154561,
+     "spellF1": 0.7860082304526749
+    },
+    "skillcorner/2007448": {
+     "ece": null,
+     "macroF1": 0.894312863498445,
+     "precisio": 0.894483790758788,
+     "spellF1": 0.703286384976526
+    },
+    "skillcorner/2007721": {
+     "ece": null,
+     "macroF1": 0.8999259135467241,
+     "precisio": 0.9012953519723346,
+     "spellF1": 0.724989270115378
+    },
+    "skillcorner/2010085": {
+     "ece": null,
+     "macroF1": 0.8844859678675047,
+     "precisio": 0.8907443052602231,
+     "spellF1": 0.6443484437241741
+    },
+    "skillcorner/2011166": {
+     "ece": null,
+     "macroF1": 0.8847172991418856,
+     "precisio": 0.8860266469115848,
+     "spellF1": 0.7232489303500035
+    },
+    "skillcorner/2013725": {
+     "ece": null,
+     "macroF1": 0.885277345904251,
+     "precisio": 0.8840180288806591,
+     "spellF1": 0.7240549828178694
+    },
+    "skillcorner/2015213": {
+     "ece": null,
+     "macroF1": 0.8867487507517731,
+     "precisio": 0.8890557734936744,
+     "spellF1": 0.6779178622148799
+    },
+    "skillcorner/2016236": {
+     "ece": null,
+     "macroF1": 0.8864174945127571,
+     "precisio": 0.8869698094086762,
+     "spellF1": 0.6653898905945986
+    },
+    "skillcorner/2017461": {
+     "ece": null,
+     "macroF1": 0.8875050519668166,
+     "precisio": 0.8949659656608757,
+     "spellF1": 0.6688759327965811
+    }
+   },
+   "precisio": [
+    0.8993355838414256,
+    0.8800100610493055,
+    0.9177498318738054
+   ],
+   "precisio_idsse": 0.9182899390935076,
+   "precisio_metrica": 0.8551087549199009,
+   "precisio_skillcorner": 0.9012866328941105,
+   "spellF1": [
+    0.6899444495478013,
+    0.6561708766287958,
+    0.7246593704724168
+   ],
+   "spellF1_idsse": 0.7203112087257363,
+   "spellF1_metrica": 0.6190886781326198,
+   "spellF1_skillcorner": 0.7175774020265647
+  },
+  "markius_v9_m1": {
+   "ece": null,
+   "ece_idsse": null,
+   "ece_metrica": null,
+   "ece_skillcorner": null,
+   "macroF1": [
+    0.8915848078220318,
+    0.8754487012958412,
+    0.9073004392011579
+   ],
+   "macroF1_idsse": 0.9071993726693863,
+   "macroF1_metrica": 0.8551508231782042,
+   "macroF1_skillcorner": 0.8982936491755652,
+   "n_seleccio": 10,
+   "per_partit": {
+    "idsse/DFL-MAT-J03WMX": {
+     "ece": null,
+     "macroF1": 0.9051958544631146,
+     "precisio": 0.912872404075835,
+     "spellF1": 0.7228903898542073
+    },
+    "idsse/DFL-MAT-J03WN1": {
+     "ece": null,
+     "macroF1": 0.9091211656195992,
+     "precisio": 0.927201657718753,
+     "spellF1": 0.7130748739617836
+    },
+    "idsse/DFL-MAT-J03WOH": {
+     "ece": null,
+     "macroF1": 0.9119212033688394,
+     "precisio": 0.9249536608533205,
+     "spellF1": 0.7341857337509511
+    },
+    "idsse/DFL-MAT-J03WOY": {
+     "ece": null,
+     "macroF1": 0.8879434672301052,
+     "precisio": 0.9027724184703172,
+     "spellF1": 0.6870165155634959
+    },
+    "idsse/DFL-MAT-J03WPY": {
+     "ece": null,
+     "macroF1": 0.9226675580639188,
+     "precisio": 0.9362332717780362,
+     "spellF1": 0.7810351020990093
+    },
+    "idsse/DFL-MAT-J03WQQ": {
+     "ece": null,
+     "macroF1": 0.9233929704922067,
+     "precisio": 0.9293776578804399,
+     "spellF1": 0.7624692960319178
+    },
+    "idsse/DFL-MAT-J03WR9": {
+     "ece": null,
+     "macroF1": 0.8901533894479204,
+     "precisio": 0.900650959182793,
+     "spellF1": 0.665695551604825
+    },
+    "metrica/Sample_Game_1": {
+     "ece": null,
+     "macroF1": 0.8532539415835232,
+     "precisio": 0.8542533298609399,
+     "spellF1": 0.6160581308846225
+    },
+    "metrica/Sample_Game_2": {
+     "ece": null,
+     "macroF1": 0.849967786029295,
+     "precisio": 0.8499676449316738,
+     "spellF1": 0.6208688976200154
+    },
+    "metrica/Sample_Game_3": {
+     "ece": null,
+     "macroF1": 0.8622307419217945,
+     "precisio": 0.8628973482087795,
+     "spellF1": 0.6232567246949383
+    },
+    "skillcorner/1874553": {
+     "ece": null,
+     "macroF1": 0.9074751736821337,
+     "precisio": 0.9119787831833284,
+     "spellF1": 0.7814715504879645
+    },
+    "skillcorner/1886347": {
+     "ece": null,
+     "macroF1": 0.9118511178535945,
+     "precisio": 0.9159330226134991,
+     "spellF1": 0.7318268509320154
+    },
+    "skillcorner/1899585": {
+     "ece": null,
+     "macroF1": 0.8953750355518371,
+     "precisio": 0.894749871996129,
+     "spellF1": 0.6967219447219447
+    },
+    "skillcorner/1925299": {
+     "ece": null,
+     "macroF1": 0.8871875977002861,
+     "precisio": 0.8926912057797708,
+     "spellF1": 0.6933964759420853
+    },
+    "skillcorner/1927964": {
+     "ece": null,
+     "macroF1": 0.9222155456287361,
+     "precisio": 0.9329154462019137,
+     "spellF1": 0.7827956989247312
+    },
+    "skillcorner/1953632": {
+     "ece": null,
+     "macroF1": 0.9382563929580927,
+     "precisio": 0.9485529438622335,
+     "spellF1": 0.8269058295964126
+    },
+    "skillcorner/1959846": {
+     "ece": null,
+     "macroF1": 0.925794807183649,
+     "precisio": 0.92490485827383,
+     "spellF1": 0.7725433464405139
+    },
+    "skillcorner/1986691": {
+     "ece": null,
+     "macroF1": 0.8825919632223554,
+     "precisio": 0.8841885578235358,
+     "spellF1": 0.6816599732262382
+    },
+    "skillcorner/1996435": {
+     "ece": null,
+     "macroF1": 0.8869850306077253,
+     "precisio": 0.8918298186002193,
+     "spellF1": 0.7050097593087837
+    },
+    "skillcorner/1996436": {
+     "ece": null,
+     "macroF1": 0.8812445509533249,
+     "precisio": 0.8829395072532952,
+     "spellF1": 0.6529726885961858
+    },
+    "skillcorner/2006229": {
+     "ece": null,
+     "macroF1": 0.8971050325981741,
+     "precisio": 0.8975603520251836,
+     "spellF1": 0.7033141628906704
+    },
+    "skillcorner/2006363": {
+     "ece": null,
+     "macroF1": 0.9202935662405997,
+     "precisio": 0.9218780794712028,
+     "spellF1": 0.7860082304526749
+    },
+    "skillcorner/2007448": {
+     "ece": null,
+     "macroF1": 0.894293533021055,
+     "precisio": 0.8944641503356549,
+     "spellF1": 0.7028169014084508
+    },
+    "skillcorner/2007721": {
+     "ece": null,
+     "macroF1": 0.8999259027937235,
+     "precisio": 0.9012953519723346,
+     "spellF1": 0.724989270115378
+    },
+    "skillcorner/2010085": {
+     "ece": null,
+     "macroF1": 0.8845789391978555,
+     "precisio": 0.8907778975904223,
+     "spellF1": 0.6447440915975667
+    },
+    "skillcorner/2011166": {
+     "ece": null,
+     "macroF1": 0.8847337389434458,
+     "precisio": 0.8860434836290983,
+     "spellF1": 0.7232489303500035
+    },
+    "skillcorner/2013725": {
+     "ece": null,
+     "macroF1": 0.8851936297447369,
+     "precisio": 0.8839360048558222,
+     "spellF1": 0.7240549828178694
+    },
+    "skillcorner/2015213": {
+     "ece": null,
+     "macroF1": 0.8858914536511242,
+     "precisio": 0.8882718550211953,
+     "spellF1": 0.6740076662027882
+    },
+    "skillcorner/2016236": {
+     "ece": null,
+     "macroF1": 0.8873817164026048,
+     "precisio": 0.8878595281697726,
+     "spellF1": 0.6671348018670441
+    },
+    "skillcorner/2017461": {
+     "ece": null,
+     "macroF1": 0.8874982555762494,
+     "precisio": 0.8949608859087675,
+     "spellF1": 0.6688759327965811
+    }
+   },
+   "precisio": [
+    0.9001180352960889,
+    0.8808238636608267,
+    0.918712914132241
+   ],
+   "precisio_idsse": 0.9191517185656422,
+   "precisio_metrica": 0.855706107667131,
+   "precisio_skillcorner": 0.9013865802283604,
+   "spellF1": [
+    0.6926551216065766,
+    0.6579753049788437,
+    0.7277284523951663
+   ],
+   "spellF1_idsse": 0.7237667804094557,
+   "spellF1_metrica": 0.6200612510665254,
+   "spellF1_skillcorner": 0.7172249544337952
+  },
+  "markius_v9_m1x": {
+   "ece": null,
+   "ece_idsse": null,
+   "ece_metrica": null,
+   "ece_skillcorner": null,
+   "macroF1": [
+    0.8916837413518701,
+    0.876280598236838,
+    0.9065920849151217
+   ],
+   "macroF1_idsse": 0.9067381683761424,
+   "macroF1_metrica": 0.8565567449619019,
+   "macroF1_skillcorner": 0.8900279975361192,
+   "n_seleccio": 10,
+   "per_partit": {
+    "idsse/DFL-MAT-J03WMX": {
+     "ece": null,
+     "macroF1": 0.9045088570580738,
+     "precisio": 0.9124042585259581,
+     "spellF1": 0.7132850943828394
+    },
+    "idsse/DFL-MAT-J03WN1": {
+     "ece": null,
+     "macroF1": 0.9055804751840948,
+     "precisio": 0.9244796081755675,
+     "spellF1": 0.6985492549034618
+    },
+    "idsse/DFL-MAT-J03WOH": {
+     "ece": null,
+     "macroF1": 0.9096985097818072,
+     "precisio": 0.9231778330041615,
+     "spellF1": 0.7206633546707378
+    },
+    "idsse/DFL-MAT-J03WOY": {
+     "ece": null,
+     "macroF1": 0.8927339717297302,
+     "precisio": 0.9060137276224554,
+     "spellF1": 0.6842081636614408
+    },
+    "idsse/DFL-MAT-J03WPY": {
+     "ece": null,
+     "macroF1": 0.9212561893215563,
+     "precisio": 0.9351594738162005,
+     "spellF1": 0.7691055289521689
+    },
+    "idsse/DFL-MAT-J03WQQ": {
+     "ece": null,
+     "macroF1": 0.9233285066225215,
+     "precisio": 0.9293565821765114,
+     "spellF1": 0.7583595133375222
+    },
+    "idsse/DFL-MAT-J03WR9": {
+     "ece": null,
+     "macroF1": 0.890060668935213,
+     "precisio": 0.9005011046098446,
+     "spellF1": 0.6496369662996372
+    },
+    "metrica/Sample_Game_1": {
+     "ece": null,
+     "macroF1": 0.8557443613867415,
+     "precisio": 0.8567285831931472,
+     "spellF1": 0.6174560065905496
+    },
+    "metrica/Sample_Game_2": {
+     "ece": null,
+     "macroF1": 0.8510509063428778,
+     "precisio": 0.8510739027825359,
+     "spellF1": 0.6352909689758574
+    },
+    "metrica/Sample_Game_3": {
+     "ece": null,
+     "macroF1": 0.8628749671560864,
+     "precisio": 0.8635771149857039,
+     "spellF1": 0.6280786809475819
+    },
+    "skillcorner/1874553": {
+     "ece": null,
+     "macroF1": 0.8966562660120151,
+     "precisio": 0.9010113886538385,
+     "spellF1": 0.7445547168612224
+    },
+    "skillcorner/1886347": {
+     "ece": null,
+     "macroF1": 0.9019985403304913,
+     "precisio": 0.906110402377975,
+     "spellF1": 0.7063553760726906
+    },
+    "skillcorner/1899585": {
+     "ece": null,
+     "macroF1": 0.887021747075321,
+     "precisio": 0.8857586550309741,
+     "spellF1": 0.6698629418093356
+    },
+    "skillcorner/1925299": {
+     "ece": null,
+     "macroF1": 0.8801975737667552,
+     "precisio": 0.8856035127055306,
+     "spellF1": 0.670646827044212
+    },
+    "skillcorner/1927964": {
+     "ece": null,
+     "macroF1": 0.9176260379615311,
+     "precisio": 0.9275414958016013,
+     "spellF1": 0.7671957671957671
+    },
+    "skillcorner/1953632": {
+     "ece": null,
+     "macroF1": 0.9302463562648692,
+     "precisio": 0.9405068034682827,
+     "spellF1": 0.7910915007003453
+    },
+    "skillcorner/1959846": {
+     "ece": null,
+     "macroF1": 0.9187798065421773,
+     "precisio": 0.9175183813390694,
+     "spellF1": 0.7505088639999343
+    },
+    "skillcorner/1986691": {
+     "ece": null,
+     "macroF1": 0.8750129469611769,
+     "precisio": 0.8761443670741061,
+     "spellF1": 0.6581333333333333
+    },
+    "skillcorner/1996435": {
+     "ece": null,
+     "macroF1": 0.8801959186339973,
+     "precisio": 0.8837845855131871,
+     "spellF1": 0.6766037043829085
+    },
+    "skillcorner/1996436": {
+     "ece": null,
+     "macroF1": 0.8705532088684564,
+     "precisio": 0.8728750629856524,
+     "spellF1": 0.6085834724675555
+    },
+    "skillcorner/2006229": {
+     "ece": null,
+     "macroF1": 0.8869079434921296,
+     "precisio": 0.8863787985922188,
+     "spellF1": 0.6700572840302828
+    },
+    "skillcorner/2006363": {
+     "ece": null,
+     "macroF1": 0.9110815649671813,
+     "precisio": 0.9115879080062461,
+     "spellF1": 0.743038198389255
+    },
+    "skillcorner/2007448": {
+     "ece": null,
+     "macroF1": 0.8871713530467794,
+     "precisio": 0.8873150363151424,
+     "spellF1": 0.6826482811288738
+    },
+    "skillcorner/2007721": {
+     "ece": null,
+     "macroF1": 0.8931973545711799,
+     "precisio": 0.8937782076079949,
+     "spellF1": 0.7097166789849716
+    },
+    "skillcorner/2010085": {
+     "ece": null,
+     "macroF1": 0.8765743397279723,
+     "precisio": 0.8826687090803428,
+     "spellF1": 0.6316789129103669
+    },
+    "skillcorner/2011166": {
+     "ece": null,
+     "macroF1": 0.874367478511243,
+     "precisio": 0.8749200255918107,
+     "spellF1": 0.6683066150727842
+    },
+    "skillcorner/2013725": {
+     "ece": null,
+     "macroF1": 0.8754002738715649,
+     "precisio": 0.8735886741226505,
+     "spellF1": 0.7063671812403184
+    },
+    "skillcorner/2015213": {
+     "ece": null,
+     "macroF1": 0.8790390982223037,
+     "precisio": 0.882194839971937,
+     "spellF1": 0.6535782156314426
+    },
+    "skillcorner/2016236": {
+     "ece": null,
+     "macroF1": 0.8823804017198228,
+     "precisio": 0.882265870308529,
+     "spellF1": 0.6563572571262362
+    },
+    "skillcorner/2017461": {
+     "ece": null,
+     "macroF1": 0.876151740175419,
+     "precisio": 0.8837549527583054,
+     "spellF1": 0.6293121693121694
+    }
+   },
+   "precisio": [
+    0.9002472188892086,
+    0.881384236447341,
+    0.9180801765244454
+   ],
+   "precisio_idsse": 0.9187275125615285,
+   "precisio_metrica": 0.8571265336537955,
+   "precisio_skillcorner": 0.8927653838652698,
+   "spellF1": [
+    0.6874633532721798,
+    0.6567133280960599,
+    0.7194434064555378
+   ],
+   "spellF1_idsse": 0.7134011251725438,
+   "spellF1_metrica": 0.6269418855046629,
+   "spellF1_skillcorner": 0.6897298648847003
+  }
+ },
+ "smooth": false,
+ "spellF1_per_llavor": {
+  "0": {
+   "fusio_v7d": 0.6944927574851614,
+   "markius_v9": 0.6949834061907809,
+   "markius_v9_m1": 0.6987318658358539,
+   "markius_v9_m1x": 0.6964570932458215
+  },
+  "1": {
+   "fusio_v7d": 0.6950018730764836,
+   "markius_v9": 0.6928932524676686,
+   "markius_v9_m1": 0.6953136742631865,
+   "markius_v9_m1x": 0.7005060714821949
+  },
+  "2": {
+   "fusio_v7d": 0.6995030431757531,
+   "markius_v9": 0.7017861503303047,
+   "markius_v9_m1": 0.7097273144621076,
+   "markius_v9_m1x": 0.7069585640890665
+  }
+ },
+ "tau_kendall_acc_dur": -0.3333333333333333,
+ "temps_s": 1526.0
+}

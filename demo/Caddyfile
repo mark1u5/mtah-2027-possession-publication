@@ -1,0 +1,3 @@
+{$DEMO_HOST:localhost} {
+    reverse_proxy v9m1-demo:4174
+}

@@ -1,18 +1,27 @@
 {
- "banco": "v12t10p2",
- "origen": "Final model (E23): TCN v10 symmetric + stack trained on bench v12t10p2 (dead ball moving, rules janv1 p2_notag without the mid-flight retiming, 6 seeds); decoder cfg from the all-matches fold of results_v12t10p2_sim_s012/stack_t2_g3.json",
- "cfg": {
-  "a": 0.35,
-  "b": 0.0,
-  "s": 0.25,
-  "d": 0.0
+ "_meta": {
+  "commit_origen": "5621a822f91a5a96c778d1575eacfa34a90ba93a",
+  "data": "2026-11-15 22:45:01",
+  "ordre": "python bench/tune_decoder.py params --graella v9m1"
  },
- "st": {
-  "p5": [
-   35.0,
-   35.599999999999994,
-   113.0
+ "cfg": {
+  "factor": 0.35,
+  "lam": 0.25,
+  "porta": false,
+  "r": false,
+  "s_D": 0.25,
+  "s_P": 1.0,
+  "s_dur": [
+   1.0,
+   1.0,
+   0.25
   ],
+  "w": 1.0
+ },
+ "graella": "v9m1",
+ "plec": "tots",
+ "spellF1_ajust": 0.7190408747957209,
+ "st": {
   "mitjana": [
    334.1544440689422,
    310.6689746125948,
@@ -22,6 +31,16 @@
    2959,
    3033,
    1469
+  ],
+  "p5": [
+   35.0,
+   35.599999999999994,
+   113.0
+  ],
+  "prior": [
+   0.3256822014458458,
+   0.30921986081577907,
+   0.3650979377383752
   ],
   "transicions": [
    [
@@ -39,20 +58,7 @@
     1264.0,
     0.0
    ]
-  ],
-  "prior": [
-   0.3256822014458458,
-   0.30921986081577907,
-   0.3650979377383752
   ]
  },
- "grupos": [
-  "tcn",
-  "jv",
-  "raw",
-  "touch"
- ],
- "tcn_simetrica": true,
- "tcn": "tcn_v12t10p2_weights.pt",
- "reglas": "janv1 p2_notag"
+ "variant": "v7d"
 }

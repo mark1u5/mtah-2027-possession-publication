@@ -1,0 +1,25 @@
+services:
+  v9m1-demo:
+    build: .
+    restart: unless-stopped
+    expose:
+      - "4174"
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - DEMO_HOST=${DEMO_HOST:-localhost}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - v9m1-demo
+
+volumes:
+  caddy_data:
+  caddy_config:

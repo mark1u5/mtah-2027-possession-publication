@@ -1,0 +1,140 @@
+{
+ "fusio_v7d_v9m1": {
+  "idsse_DFL-MAT-J03WMX": {
+   "cfg": {
+    "factor": 0.35,
+    "lam": 0.25,
+    "porta": false,
+    "r": false,
+    "s_D": 0.25,
+    "s_P": 1.0,
+    "s_dur": [
+     1.0,
+     1.0,
+     0.25
+    ],
+    "w": 1.0
+   },
+   "spellF1_ajust": 0.7214790252342992
+  },
+  "idsse_DFL-MAT-J03WN1": {
+   "cfg": {
+    "factor": 0.35,
+    "lam": 0.25,
+    "porta": false,
+    "r": false,
+    "s_D": 0.25,
+    "s_P": 1.0,
+    "s_dur": [
+     1.0,
+     1.0,
+     0.25
+    ],
+    "w": 1.0
+   },
+   "spellF1_ajust": 0.7251970345200144
+  },
+  "idsse_DFL-MAT-J03WOH": {
+   "cfg": {
+    "factor": 0.35,
+    "lam": 0.25,
+    "porta": false,
+    "r": false,
+    "s_D": 0.25,
+    "s_P": 1.0,
+    "s_dur": [
+     1.0,
+     1.0,
+     0.25
+    ],
+    "w": 1.0
+   },
+   "spellF1_ajust": 0.7207159462351331
+  },
+  "idsse_DFL-MAT-J03WOY": {
+   "cfg": {
+    "factor": 0.25,
+    "lam": 0.25,
+    "porta": false,
+    "r": false,
+    "s_D": 0.25,
+    "s_P": 0.5,
+    "s_dur": [
+     0.5,
+     0.5,
+     0.25
+    ],
+    "w": 0.75
+   },
+   "spellF1_ajust": 0.720159861982877
+  },
+  "idsse_DFL-MAT-J03WPY": {
+   "cfg": {
+    "factor": 0.35,
+    "lam": 0.25,
+    "porta": false,
+    "r": false,
+    "s_D": 0.25,
+    "s_P": 1.0,
+    "s_dur": [
+     1.0,
+     1.0,
+     0.25
+    ],
+    "w": 1.0
+   },
+   "spellF1_ajust": 0.7056706151940833
+  },
+  "idsse_DFL-MAT-J03WQQ": {
+   "cfg": {
+    "factor": 0.35,
+    "lam": 0.25,
+    "porta": false,
+    "r": false,
+    "s_D": 0.25,
+    "s_P": 1.0,
+    "s_dur": [
+     1.0,
+     1.0,
+     0.25
+    ],
+    "w": 1.0
+   },
+   "spellF1_ajust": 0.7132437289898634
+  },
+  "idsse_DFL-MAT-J03WR9": {
+   "cfg": {
+    "factor": 0.35,
+    "lam": 0.25,
+    "porta": false,
+    "r": false,
+    "s_D": 0.25,
+    "s_P": 1.0,
+    "s_dur": [
+     1.0,
+     1.0,
+     0.25
+    ],
+    "w": 1.0
+   },
+   "spellF1_ajust": 0.7288894904458233
+  },
+  "tots": {
+   "cfg": {
+    "factor": 0.35,
+    "lam": 0.25,
+    "porta": false,
+    "r": false,
+    "s_D": 0.25,
+    "s_P": 1.0,
+    "s_dur": [
+     1.0,
+     1.0,
+     0.25
+    ],
+    "w": 1.0
+   },
+   "spellF1_ajust": 0.7190408747957209
+  }
+ }
+}

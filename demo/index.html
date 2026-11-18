@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>v9m1 · Ball Possession from Tracking Data</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <svg viewBox="0 0 32 32" aria-hidden="true">
+        <circle cx="16" cy="16" r="12" fill="none" stroke="currentColor" stroke-width="2"/>
+        <path d="M16 4v24M4 16h24" stroke="currentColor" stroke-width="1.3" opacity="0.35"/>
+        <circle cx="16" cy="16" r="3.2" fill="currentColor"/>
+      </svg>
+      <span>v9m1</span>
+      <em>Team El Chato · MTAH 2027</em>
+    </div>
+    <nav class="scenarios" id="scenarios" aria-label="Match scenarios"></nav>
+    <div class="top-actions">
+      <button class="pill-btn" id="archBtn">How v9m1 works</button>
+      <a class="pill-btn" href="https://github.com/mark1u5/mtah-2027-possession-publication" target="_blank" rel="noopener">GitHub ↗</a>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="hero-copy">
+      <h1>Two branches.<br><span>One physical decoder.</span></h1>
+      <p id="scenarioDesc">Loading open Metrica tracking window…</p>
+    </div>
+    <div class="kpis" id="kpis">
+      <div class="kpi primary">
+        <span class="kl">Spell-F1</span>
+        <strong id="kpiSpell">—</strong>
+        <small id="kpiSpellDelta">vs v9m1 default</small>
+      </div>
+      <div class="kpi">
+        <span class="kl">Macro-F1</span>
+        <strong id="kpiMacro">—</strong>
+        <small id="kpiAcc">Agreement —</small>
+      </div>
+      <div class="kpi">
+        <span class="kl">Spells (Pred / GT)</span>
+        <strong id="kpiSpells">—</strong>
+        <small>H + A possessions</small>
+      </div>
+      <div class="kpi">
+        <span class="kl">Dead ball</span>
+        <strong id="kpiDead">—</strong>
+        <small id="kpiRuntime">Viterbi — ms</small>
+      </div>
+    </div>
+  </section>
+
+  <main class="stage">
+    <section class="card pitch-card">
+      <div class="card-head">
+        <div class="frame-meta">
+          <span class="mono" id="clockReadout">00:00.0</span>
+          <span class="sep">·</span>
+          <span class="mono muted" id="frameReadout">frame 0 / 6000</span>
+          <span class="badge-dropout" id="dropoutBadge" hidden>BALL DROPOUT</span>
+        </div>
+        <div class="legend">
+          <span><i class="dot-h"></i>Home (H)</span>
+          <span><i class="dot-a"></i>Away (A)</span>
+          <span><i class="dot-d"></i>Dead (D)</span>
+        </div>
+      </div>
+
+      <div class="pitch-wrap">
+        <canvas id="pitchCanvas"></canvas>
+      </div>
+
+      <div class="controls">
+        <div class="ctl-group">
+          <button class="ctl primary" id="playBtn">▶ Play</button>
+          <button class="ctl" id="backBtn" title="Back 5 seconds">−5s</button>
+          <button class="ctl" id="fwdBtn" title="Forward 5 seconds">+5s</button>
+          <button class="ctl" id="speedBtn" title="Playback speed">1×</button>
+        </div>
+        <div class="ctl-group">
+          <button class="ctl" id="nextDropBtn">Next ball dropout →</button>
+          <button class="ctl" id="nextErrBtn">Next mismatch →</button>
+        </div>
+      </div>
+    </section>
+
+    <aside class="card lab-card">
+      <div class="card-head">
+        <div>
+          <h2>v9m1 Decoder Lab</h2>
+          <p class="sub">Runs exact Viterbi in your browser in ~5 ms</p>
+        </div>
+        <button class="reset-btn" id="resetBtn">Reset</button>
+      </div>
+
+      <div class="presets" id="presets">
+        <button class="preset on" data-p="v9m1">v9m1 (Default)</button>
+        <button class="preset" data-p="v9">Fixed mod (v9)</button>
+        <button class="preset" data-p="tcn">TCN only</button>
+        <button class="preset" data-p="rules">Rules only</button>
+      </div>
+
+      <div class="sliders">
+        <label class="srow">
+          <div class="slab"><span>TCN base weight <b>w</b></span><code id="val_w">1.00</code></div>
+          <input type="range" id="sl_w" min="0" max="1.5" step="0.05" value="1">
+          <small>0 = pure rules · 1 = TCN-led unless contact overrides</small>
+        </label>
+        <label class="srow">
+          <div class="slab"><span>Contact modulation <b>factor</b></span><code id="val_factor">0.35</code></div>
+          <input type="range" id="sl_factor" min="0" max="0.9" step="0.05" value="0.35">
+          <small>w_t = w · (1 − factor · conf_fisica)</small>
+        </label>
+        <label class="srow">
+          <div class="slab"><span>Emission scale <b>lam</b></span><code id="val_lam">0.25</code></div>
+          <input type="range" id="sl_lam" min="0.05" max="0.8" step="0.05" value="0.25">
+          <small>Data likelihood vs HMM transition penalty</small>
+        </label>
+        <label class="srow">
+          <div class="slab"><span>Live min duration <b>s_P</b></span><code id="val_s_P">1.00</code></div>
+          <input type="range" id="sl_s_P" min="0.2" max="2.0" step="0.05" value="1.0">
+          <small id="minLiveReadout">H/A ≥ 35 frames (1.4 s)</small>
+        </label>
+        <label class="srow">
+          <div class="slab"><span>Dead min duration <b>s_D</b></span><code id="val_s_D">0.25</code></div>
+          <input type="range" id="sl_s_D" min="0.1" max="2.0" step="0.05" value="0.25">
+          <small id="minDeadReadout">D ≥ 28 frames (1.1 s)</small>
+        </label>
+      </div>
+
+      <div class="inspector">
+        <div class="ins-head">
+          <span>Frame inspector</span>
+          <span class="verdict-pill" id="insVerdict">—</span>
+        </div>
+        <div class="ins-grid">
+          <div><span>TCN v7d</span><b id="insTcn">—</b></div>
+          <div><span>Rule (p3_notag)</span><b id="insRule">—</b></div>
+          <div><span>conf_fisica</span><b id="insConf">—</b></div>
+          <div><span>Dynamic w_t</span><b id="insWt">—</b></div>
+          <div><span>v9m1 Viterbi</span><b id="insPred">—</b></div>
+          <div><span>Ground Truth</span><b id="insGt">—</b></div>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <section class="card timeline-card">
+    <div class="card-head">
+      <div>
+        <h2>Synchronized Signal &amp; Spell Tracks</h2>
+        <p class="sub">Click or drag anywhere to seek · hover to inspect frame probabilities &amp; spell IoU</p>
+      </div>
+      <div class="zoom-group" id="zoomGroup">
+        <button class="zbtn on" data-z="1">1× (4 min)</button>
+        <button class="zbtn" data-z="2">2× (2 min)</button>
+        <button class="zbtn" data-z="4">4× (1 min)</button>
+      </div>
+    </div>
+    <div class="timeline-wrap">
+      <canvas id="timelineCanvas"></canvas>
+      <div class="tip" id="tip" hidden></div>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <span>Open anonymised tracking from <a href="https://github.com/metrica-sports/sample-data" target="_blank" rel="noopener">Metrica Sports Sample Data</a> (no restricted competition match data is exposed).</span>
+    <span>Keys: <code>Space</code> play/pause · <code>←/→</code> step 1s · <code>M</code> next mismatch</span>
+  </footer>
+
+  <div class="modal" id="modal" hidden>
+    <div class="sheet">
+      <button class="x" id="modalClose" aria-label="Close">×</button>
+      <h3>How v9m1 works</h3>
+      <p class="mlead">v9m1 combines a <b>non-causal dilated TCN</b> with <b>deterministic physical rules</b> inside a single physically modulated Viterbi decoder — reading only raw ATD tracking.</p>
+      <div class="mgrid">
+        <div>
+          <h4>1 · Learned Branch (TCN v7d)</h4>
+          <p>8 dilated residual blocks (dilation 1→128, receptive field ±20 s) trained on external matches with v3 tracking degradation. Bridges ball dropouts and long gaps.</p>
+        </div>
+        <div>
+          <h4>2 · Physics &amp; Rules (p3_notag)</h4>
+          <p>Closest reachable player + relative ball speed rules without Smart Tagging, paired with invariant contact confidence <code>conf_fisica = exp(-0.20 · v_rel) · 1[κ ≤ 0.95]</code>.</p>
+        </div>
+        <div>
+          <h4>3 · Dynamic Modulation</h4>
+          <p>When physical ball control is clear, <code>w_t = w · (1 − factor · conf_t)</code> shifts emission weight from the blurred TCN toward crisp frame-level physical control.</p>
+        </div>
+        <div>
+          <h4>4 · Decoupled Viterbi HMM</h4>
+          <p>Separates minimum spell multipliers for live play (<code>s_P = 1.0</code>, ~1.4 s) and dead ball (<code>s_D = 0.25</code>, ~1.1 s), recovering brief stoppages without fracturing possessions.</p>
+        </div>
+      </div>
+      <p class="mfoot">External 10-match benchmark: <b>0.701 Spell-F1</b> [0.667, 0.735] · <b>0.893 Macro-F1</b>.</p>
+    </div>
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
