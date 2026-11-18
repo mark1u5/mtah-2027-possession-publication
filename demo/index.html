@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>v9m1 · Ball Possession</title>
+  <title>Ball Possession AI · Interactive Demo</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -11,7 +11,7 @@
 </head>
 <body class="view-landing">
 
-<!-- BEAT 1: Dynamic Overview (before entering a match) -->
+<!-- BEAT 1: Plain-English Overview -->
 <section id="landing">
   <header class="top">
     <div class="logo">
@@ -20,7 +20,7 @@
         <path d="M16 4.5v23M4.5 16h23" stroke="currentColor" stroke-width="1.3" opacity="0.35"/>
         <circle cx="16" cy="16" r="3" fill="currentColor"/>
       </svg>
-      v9m1
+      Possession AI
     </div>
     <div class="topr">
       <button class="icon-btn" id="infoBtn" title="How it works" aria-label="How it works">?</button>
@@ -29,12 +29,12 @@
   </header>
 
   <div class="lhero">
-    <h1>From noisy tracking<br><span>to possession spells.</span></h1>
-    <p class="sum">ATD tracking only · <b>TCN ±20 s</b> meets <b>physical contact rules</b> inside Viterbi · <b>0.701 Spell-F1</b> on 10 external matches.</p>
+    <h1>Who has the ball,<br><span>even when tracking loses it.</span></h1>
+    <p class="sum">Automated cameras lose the ball ~40% of the time. Two models — one reading <b>flow over time</b>, one reading <b>touch physics</b> — combine on every frame.</p>
   </div>
 
   <div class="pipe-wrap">
-    <svg id="pipeSvg" viewBox="0 0 960 205" aria-label="v9m1 signal flow">
+    <svg id="pipeSvg" viewBox="0 0 960 205" aria-label="How the model decides">
       <defs>
         <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
           <feGaussianBlur stdDeviation="3.5" result="b"/>
@@ -42,52 +42,49 @@
         </filter>
       </defs>
 
-      <!-- Base paths -->
-      <path id="p-top-in"  d="M 155 102 C 225 102, 235 44, 310 44" class="flow-bg"/>
-      <path id="p-bot-in"  d="M 155 102 C 225 102, 235 160, 310 160" class="flow-bg"/>
-      <path id="p-top-out" d="M 485 44 C 555 44, 565 102, 625 102" class="flow-bg"/>
-      <path id="p-bot-out" d="M 485 160 C 555 160, 565 102, 625 102" class="flow-bg"/>
-      <path id="p-vit-out" d="M 795 102 L 850 102" class="flow-bg"/>
+      <path d="M 155 102 C 225 102, 235 44, 310 44" class="flow-bg"/>
+      <path d="M 155 102 C 225 102, 235 160, 310 160" class="flow-bg"/>
+      <path d="M 485 44 C 555 44, 565 102, 625 102" class="flow-bg"/>
+      <path d="M 485 160 C 555 160, 565 102, 625 102" class="flow-bg"/>
+      <path d="M 795 102 L 850 102" class="flow-bg"/>
 
-      <!-- Animated flowing pulses -->
       <path d="M 155 102 C 225 102, 235 44, 310 44" class="flow-pulse c-h"/>
       <path d="M 155 102 C 225 102, 235 160, 310 160" class="flow-pulse c-p delay1"/>
       <path d="M 485 44 C 555 44, 565 102, 625 102" class="flow-pulse c-h delay2"/>
       <path d="M 485 160 C 555 160, 565 102, 625 102" class="flow-pulse c-p delay3"/>
       <path d="M 795 102 L 850 102" class="flow-pulse c-ok delay4"/>
 
-      <!-- Nodes -->
-      <g class="pnode" data-note="Raw 25 fps positions · ball missing ~40% of frames · no video or Smart Tagging">
+      <g class="pnode" data-note="Only raw player &amp; ball coordinates at 25 fps — no video, no human labels.">
         <rect x="16" y="70" width="139" height="64" rx="14"/>
-        <text x="85.5" y="96" class="pn-t">ATD Tracking</text>
-        <text x="85.5" y="116" class="pn-s">ball + 22 players</text>
+        <text x="85.5" y="96" class="pn-t">Player &amp; Ball</text>
+        <text x="85.5" y="116" class="pn-s">noisy 2D positions</text>
       </g>
 
-      <g class="pnode n-h" data-note="8 dilated residual blocks (±20 s context) · bridges long ball dropouts">
+      <g class="pnode n-h" data-note="Neural network looking 20 seconds back and ahead — keeps track even when the ball vanishes.">
         <rect x="310" y="12" width="175" height="64" rx="14"/>
-        <text x="397.5" y="38" class="pn-t">TCN v7d</text>
-        <text x="397.5" y="58" class="pn-s">±20 s neural context</text>
+        <text x="397.5" y="38" class="pn-t">Context Model</text>
+        <text x="397.5" y="58" class="pn-s">20 s before &amp; after</text>
       </g>
 
-      <g class="pnode n-p" data-note="Deterministic p3_notag rules + invariant contact confidence (κ ≤ 0.95)">
+      <g class="pnode n-p" data-note="Checks who is within reach and matching the ball's speed — takes over on clean touches.">
         <rect x="310" y="128" width="175" height="64" rx="14"/>
-        <text x="397.5" y="154" class="pn-t">Rules + conf_fisica</text>
-        <text x="397.5" y="174" class="pn-s">dynamic weight w_t</text>
+        <text x="397.5" y="154" class="pn-t">Touch Physics</text>
+        <text x="397.5" y="174" class="pn-s">distance &amp; ball speed</text>
       </g>
 
-      <g class="pnode n-ok" data-note="Decoupled min durations (s_P=1.0 live, s_D=0.25 dead) · eliminates flicker">
+      <g class="pnode n-ok" data-note="Turns noisy frame-by-frame guesses into clean, realistic possession spells.">
         <rect x="625" y="70" width="170" height="64" rx="14"/>
-        <text x="710" y="96" class="pn-t">v9m1 Viterbi</text>
-        <text x="710" y="116" class="pn-s">decoupled HMM</text>
+        <text x="710" y="96" class="pn-t">Smoothing</text>
+        <text x="710" y="116" class="pn-s">clean spells</text>
       </g>
 
-      <g class="pnode n-out" data-note="Per-frame Home (H), Away (A), Dead (D), or X outside halves">
+      <g class="pnode n-out" data-note="Final output for every frame: Home team, Away team, or Play stopped.">
         <rect x="850" y="70" width="94" height="64" rx="14"/>
-        <text x="897" y="96" class="pn-t">H / A / D</text>
-        <text x="897" y="116" class="pn-s">spells</text>
+        <text x="897" y="96" class="pn-t">Possession</text>
+        <text x="897" y="116" class="pn-s">Home / Away</text>
       </g>
     </svg>
-    <p class="pipe-note" id="pipeNote">Hover any stage to inspect · pick a match below to explore</p>
+    <p class="pipe-note" id="pipeNote">Hover any stage to see what it does · choose a match clip below</p>
   </div>
 
   <div class="mgrid" id="matchGrid"></div>
@@ -104,7 +101,7 @@
   </header>
 
   <section class="hero">
-    <h1>Two branches.<br><span>One physical truth.</span></h1>
+    <h1>One match.<br><span>Two ways of seeing it.</span></h1>
     <p class="sum" id="sum">&nbsp;</p>
   </section>
 
@@ -114,15 +111,15 @@
       <div class="legend">
         <span><i style="background:var(--h)"></i>Home</span>
         <span><i style="background:var(--a)"></i>Away</span>
-        <span><i style="background:var(--d)"></i>Dead</span>
-        <span><i class="dash"></i>Ball dropout</span>
+        <span><i style="background:var(--d)"></i>Play stopped</span>
+        <span><i class="dash"></i>Ball missing</span>
       </div>
       <div class="seg" id="modeSeg" role="tablist" aria-label="Model view">
-        <button class="on" data-m="v9m1">v9m1</button>
-        <button data-m="tcn">TCN only</button>
-        <button data-m="rules">Rules only</button>
+        <button class="on" data-m="v9m1">Combined</button>
+        <button data-m="tcn">Context only</button>
+        <button data-m="rules">Physics only</button>
       </div>
-      <button class="cta-pill" id="openDive">Watch 2D replay →</button>
+      <button class="cta-pill" id="openDive">Watch 2D match →</button>
     </div>
   </section>
 </main>
@@ -133,28 +130,28 @@
 <section class="full" id="full" hidden>
   <button class="back" id="back" aria-label="Back">
     <i>←</i>
-    <span><b id="diveTitle">Sample Game 1</b><small id="diveSub">00:00 · Home</small></span>
+    <span><b id="diveTitle">Match 1</b><small id="diveSub">00:00 · Home</small></span>
   </button>
 
   <div class="flegend">
     <span><i style="background:var(--h)"></i>Home</span>
     <span><i style="background:var(--a)"></i>Away</span>
-    <span><i style="background:var(--d)"></i>Dead</span>
-    <span class="fverdict" id="fverdict">Matches GT</span>
+    <span><i style="background:var(--d)"></i>Stopped</span>
+    <span class="fverdict" id="fverdict">Correct</span>
   </div>
 
   <div class="decision-bar">
     <p class="decision-line" id="decisionLine">&nbsp;</p>
-    <div class="wt-meter" title="Dynamic TCN weight w_t">
-      <span>TCN</span>
+    <div class="wt-meter" title="Balance between Context AI and Touch Physics right now">
+      <span>Physics</span>
       <div class="wt-track"><i id="wtFill"></i></div>
-      <span>Rules</span>
+      <span>Context</span>
     </div>
   </div>
 
   <div class="pitch-stage">
     <canvas id="pitch"></canvas>
-    <div class="drop-pill" id="dropPill" hidden>Ball tracking lost · TCN bridging gap</div>
+    <div class="drop-pill" id="dropPill" hidden>Ball missing from tracking · bridging from player movement</div>
   </div>
 
   <div class="sig-stage">
@@ -169,26 +166,26 @@
     <span class="fb-time" id="timeTxt">00:00</span>
     <button class="fb-spd" id="speedBtn" title="Playback speed">1×</button>
     <div class="seg sm" id="diveSeg">
-      <button class="on" data-m="v9m1">v9m1</button>
-      <button data-m="tcn">TCN</button>
-      <button data-m="rules">Rules</button>
+      <button class="on" data-m="v9m1">Combined</button>
+      <button data-m="tcn">Context</button>
+      <button data-m="rules">Physics</button>
     </div>
-    <button class="fb-next" id="nextBtn">Next highlight →</button>
+    <button class="fb-next" id="nextBtn">Next moment →</button>
   </div>
 </section>
 
 <div class="modal" id="modal" hidden>
   <div class="sheet">
     <button class="x" id="mx" aria-label="Close">×</button>
-    <h2>How v9m1 works</h2>
-    <p>Reads only raw tracking (no video, no Smart Tagging). A dilated neural network bridges missing ball tracks, deterministic rules capture crisp physical control, and a decoupled Viterbi decoder locks onto clean possession spells.</p>
+    <h2>How the model works</h2>
+    <p>Football tracking data is noisy: automated cameras often lose the ball behind players or during fast kicks. Instead of trusting a single signal, this system combines two views and smooths them into clean possessions.</p>
     <div class="m-pills">
-      <div><b>TCN v7d</b><span>±20 s context</span></div>
-      <div><b>p3_notag</b><span>Kinematic rules</span></div>
-      <div><b>conf_fisica</b><span>Dynamic w_t</span></div>
-      <div><b>Viterbi</b><span>0.701 Spell-F1</span></div>
+      <div><b>1 · Context Model</b><span>Looks 20 s back &amp; ahead to bridge gaps</span></div>
+      <div><b>2 · Touch Physics</b><span>Spots who is close &amp; controlling the ball</span></div>
+      <div><b>3 · Dynamic Balance</b><span>Trusts physics on clear touches, context elsewhere</span></div>
+      <div><b>4 · Smoothing</b><span>Turns noisy frames into realistic spells</span></div>
     </div>
-    <p class="m-src">Open sample data: <a href="https://github.com/metrica-sports/sample-data" target="_blank" rel="noopener">Metrica Sports Sample Data</a> (public anonymised matches, acknowledged per source guidelines) · <a href="https://github.com/mark1u5/mtah-2027-possession-publication" target="_blank" rel="noopener">Repository &amp; Paper</a></p>
+    <p class="m-src">Uses open anonymised clips from <a href="https://github.com/metrica-sports/sample-data" target="_blank" rel="noopener">Metrica Sports Sample Data</a> · Built with the <a href="https://github.com/mark1u5/mtah-2027-possession-publication" target="_blank" rel="noopener">v9m1 pipeline</a>.</p>
   </div>
 </div>
 

@@ -1,7 +1,7 @@
 import { CODE_MAP, decodeV9m1, evaluateMetrics } from './viterbi.js';
 
 const COLORS = { 0: '#8fd3ff', 1: '#f2a99f', 2: '#f3e2a6', 3: '#55555c' };
-const NAMES = { 0: 'Home', 1: 'Away', 2: 'Dead ball', 3: 'Unknown' };
+const NAMES = { 0: 'Home', 1: 'Away', 2: 'Play stopped', 3: 'Unknown' };
 const MODES = {
   v9m1: (sc) => decodeV9m1(sc, sc.defaults),
   tcn: (sc) => {
@@ -29,7 +29,7 @@ const state = {
   sc: null,
   mode: 'v9m1',
   cache: {},
-  view: 'landing', // 'landing' | 'home' | 'dive'
+  view: 'landing',
   frame: 0,
   playing: false,
   speedIdx: 0,
@@ -75,13 +75,13 @@ async function buildLandingCards() {
     btn.innerHTML = `
       <div class="mcard-top">
         <b>${item.title}</b>
-        <span>${v9.spellF1.toFixed(3)} Spell-F1</span>
+        <span>${Math.round(v9.spellF1 * 100)}% spell match</span>
       </div>
       <p>${item.subtitle}</p>
       <div class="mcard-bar"><canvas></canvas></div>
       <div class="mcard-foot">
-        <span>${v9.nPredSpells} spells · Metrica sample</span>
-        <span>Explore →</span>
+        <span>${v9.nPredSpells} possessions · 4 min</span>
+        <span>Open →</span>
       </div>
     `;
     btn.addEventListener('click', (e) => enterMatch(idx, e.clientX, e.clientY));
@@ -164,11 +164,11 @@ function setMode(m) {
 function renderHome() {
   if (!state.sc) return;
   const { metrics } = active();
-  const label = state.mode === 'v9m1' ? 'v9m1' : (state.mode === 'tcn' ? 'TCN only' : 'Rules only');
-  const degNote = state.sc.degraded ? '40% missing ball tracking' : 'clean optical tracking';
+  const label = state.mode === 'v9m1' ? 'Combined model' : (state.mode === 'tcn' ? 'Context only' : 'Physics only');
+  const degNote = state.sc.degraded ? 'with 40% missing ball tracking' : 'on clean tracking';
   $('sum').innerHTML =
-    `<b>${label}</b> scores <b>${metrics.spellF1.toFixed(3)} Spell-F1</b> across ` +
-    `<b>${metrics.nPredSpells}</b> possessions (truth: ${metrics.nGtSpells}) on ${degNote}. Click any spell to watch.`;
+    `<b>${label}</b> matches <b>${Math.round(metrics.spellF1 * 100)}%</b> of real possessions ` +
+    `(<b>${metrics.nPredSpells}</b> detected vs <b>${metrics.nGtSpells}</b> actual) ${degNote}. Click any bar to watch it happen.`;
   drawStream();
 }
 
@@ -193,9 +193,9 @@ function drawStream() {
     const t = el('text', { x: 0, y, fill: '#55555c', 'font-size': '10.5', 'font-family': 'JetBrains Mono, monospace' });
     t.textContent = txt;
   };
-  addTag(28, 'GROUND TRUTH');
-  addTag(82, state.mode.toUpperCase());
-  addTag(172, 'CONTACT CONFIDENCE');
+  addTag(28, 'REAL MATCH');
+  addTag(82, state.mode === 'v9m1' ? 'COMBINED MODEL' : (state.mode === 'tcn' ? 'CONTEXT ONLY' : 'PHYSICS ONLY'));
+  addTag(172, 'TOUCH CONFIDENCE');
 
   for (const r of active().metrics.gtAllRuns) {
     el('rect', {
@@ -259,7 +259,7 @@ function showTip(e, run) {
   const dur = ((run.stop - run.start) / state.sc.fps).toFixed(1);
   let dropFrames = 0;
   for (let f = run.start; f < run.stop; f++) if (state.sc.signals.bVis[f] === '0') dropFrames++;
-  const dropTxt = dropFrames > 10 ? ` · ${Math.round((100 * dropFrames) / (run.stop - run.start))}% no ball` : '';
+  const dropTxt = dropFrames > 10 ? ` · ${Math.round((100 * dropFrames) / (run.stop - run.start))}% blind` : '';
   const tip = $('tip');
   tip.innerHTML = `<b style="color:${COLORS[run.code]}">${NAMES[run.code]}</b> · ${dur} s<small>${fmtTime(run.start)}${dropTxt} · click to watch</small>`;
   tip.hidden = false;
@@ -333,7 +333,7 @@ function renderDive() {
   $('dropPill').hidden = sig.bVis[f] === '1';
 
   const vEl = $('fverdict');
-  vEl.textContent = agree ? 'Matches GT' : `GT: ${NAMES[gt]}`;
+  vEl.textContent = agree ? 'Matches real play' : `Actual: ${NAMES[gt]}`;
   vEl.className = 'fverdict' + (agree ? '' : ' miss');
 
   const probs = [sig.pH[f], sig.pA[f], sig.pD[f]];
@@ -346,21 +346,21 @@ function renderDive() {
 
   let reason;
   if (state.mode === 'tcn') {
-    reason = `TCN raw argmax · <b style="color:${COLORS[tcnArg]}">${NAMES[tcnArg]} ${tcnPct}%</b>`;
+    reason = `Context AI alone · predicts <b style="color:${COLORS[tcnArg]}">${NAMES[tcnArg]} (${tcnPct}%)</b> without physics or smoothing`;
   } else if (state.mode === 'rules') {
     reason = sig.bVis[f] === '0'
-      ? `No ball tracking · <b>Rules</b> hold (${NAMES[ruleCode]})`
-      : `Kinematic rules (p3_notag) · <b style="color:${COLORS[ruleCode]}">${NAMES[ruleCode]}</b> · conf ${conf.toFixed(2)}`;
+      ? `Ball missing · <b>Physics alone</b> keeps previous team (${NAMES[ruleCode]})`
+      : `Touch physics alone · sees <b style="color:${COLORS[ruleCode]}">${NAMES[ruleCode]}</b> controlling the ball`;
   } else if (sig.bVis[f] === '0') {
-    reason = `Ball lost · <b>TCN ±20 s</b> bridges gap (${NAMES[tcnArg]} ${tcnPct}%) → <b style="color:${COLORS[pred]}">${NAMES[pred]}</b>`;
+    reason = `Ball missing in tracking · <b>20 s context</b> bridges the gap → <b style="color:${COLORS[pred]}">${NAMES[pred]} (${tcnPct}%)</b>`;
   } else if (conf > 0.35 && ruleCode !== tcnArg) {
-    reason = `Clear contact (conf ${conf.toFixed(2)}) shifts weight to rules (<b>w_t ${wt.toFixed(2)}</b>) → <b style="color:${COLORS[pred]}">${NAMES[pred]}</b>`;
+    reason = `Clean touch detected · <b>physics takes priority</b> over context → <b style="color:${COLORS[pred]}">${NAMES[pred]}</b>`;
   } else if (tcnArg === ruleCode && pred === tcnArg) {
-    reason = `TCN (${tcnPct}%) &amp; rules agree · <b style="color:${COLORS[pred]}">${NAMES[pred]}</b>` + (conf > 0.35 ? ` · conf ${conf.toFixed(2)}` : '');
+    reason = `Context (${tcnPct}%) &amp; touch physics agree → <b style="color:${COLORS[pred]}">${NAMES[pred]}</b>`;
   } else if (pred !== tcnArg && pred !== ruleCode) {
-    reason = `Viterbi minimum duration holds <b style="color:${COLORS[pred]}">${NAMES[pred]}</b> against flicker`;
+    reason = `Smoothing ignores a brief flicker · keeps <b style="color:${COLORS[pred]}">${NAMES[pred]}</b>`;
   } else {
-    reason = `TCN (${NAMES[tcnArg]} ${tcnPct}%) vs Rules (${NAMES[ruleCode]}) · <b>w_t ${wt.toFixed(2)}</b> → <b style="color:${COLORS[pred]}">${NAMES[pred]}</b>`;
+    reason = `Context leans ${NAMES[tcnArg]} (${tcnPct}%), physics leans ${NAMES[ruleCode]} → <b style="color:${COLORS[pred]}">${NAMES[pred]}</b>`;
   }
   $('decisionLine').innerHTML = reason;
 
@@ -429,7 +429,6 @@ function drawPitch() {
     const vy = py - prevY;
     const col = teams[k] === 0 ? COLORS[0] : COLORS[1];
 
-    // Subtle velocity vector
     if (Math.hypot(vx, vy) > 0.05) {
       ctx.beginPath();
       ctx.moveTo(sx(px), sy(py));
@@ -504,9 +503,9 @@ function drawSignals() {
   const sig = state.sc.signals;
   const pred = active().pred;
   const rows = [
-    { lbl: 'TCN ±20s', y: 4 * dpr, rh: 26 * dpr },
-    { lbl: 'Rules·conf', y: 36 * dpr, rh: 22 * dpr },
-    { lbl: state.mode, y: 64 * dpr, rh: 20 * dpr },
+    { lbl: 'Context', y: 4 * dpr, rh: 26 * dpr },
+    { lbl: 'Physics', y: 36 * dpr, rh: 22 * dpr },
+    { lbl: 'Final', y: 64 * dpr, rh: 20 * dpr },
   ];
 
   ctx.font = `500 ${10 * dpr}px "JetBrains Mono", monospace`;
@@ -613,7 +612,7 @@ function bindUI() {
     n.addEventListener('mouseenter', () => { $('pipeNote').textContent = n.dataset.note; });
   });
   $('pipeSvg').addEventListener('mouseleave', () => {
-    $('pipeNote').textContent = 'Hover any stage to inspect · pick a match below to explore';
+    $('pipeNote').textContent = 'Hover any stage to see what it does · choose a match clip below';
   });
 
   $('toLanding').addEventListener('click', backToLanding);

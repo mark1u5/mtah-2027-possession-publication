@@ -1,8 +1,8 @@
 [
   {
     "id": "sg1_degraded",
-    "title": "Sample Game 1 \u00b7 Degraded ATD (v3)",
-    "subtitle": "4-min clip with ball dropouts (40.3%), wander & contested switches",
+    "title": "Match 1 · Broken ball tracking",
+    "subtitle": "4 minutes where the ball disappears 40% of the time — watch the model bridge the gaps.",
     "file": "data/sg1_degraded.json",
     "degraded": true,
     "pySpellF1": 0.8545,
@@ -10,8 +10,8 @@
   },
   {
     "id": "sg1_clean",
-    "title": "Sample Game 1 \u00b7 Clean Optical",
-    "subtitle": "Exact same 4-min clip without ATD degradation (contrast tracking noise)",
+    "title": "Match 1 · Clean tracking",
+    "subtitle": "Exact same 4 minutes with full ball visibility to compare side by side.",
     "file": "data/sg1_clean.json",
     "degraded": false,
     "pySpellF1": 0.8364,
@@ -19,8 +19,8 @@
   },
   {
     "id": "sg2_degraded",
-    "title": "Sample Game 2 \u00b7 Degraded ATD (v3)",
-    "subtitle": "4-min clip with rapid turnovers & dead-ball stoppages (43.6% D)",
+    "title": "Match 2 · Fast transitions",
+    "subtitle": "Quick counter-attacks, contested duels, and frequent play stoppages.",
     "file": "data/sg2_degraded.json",
     "degraded": true,
     "pySpellF1": 0.75,
