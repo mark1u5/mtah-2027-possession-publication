@@ -172,11 +172,23 @@ h1 span { color: var(--fg3); }
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 76px 36px 96px;
+  gap: 10px;
+  padding: 68px 36px 86px;
   opacity: 0;
   transition: opacity 0.45s ease;
 }
 .full.on { opacity: 1; }
+
+.decision-line {
+  font: 400 13px var(--mono);
+  color: var(--fg2);
+  text-align: center;
+  max-width: min(980px, 92vw);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.decision-line b { color: var(--fg); font-weight: 500; }
 
 .back {
   position: fixed;
@@ -224,11 +236,17 @@ h1 span { color: var(--fg3); }
 
 .pitch-stage {
   position: relative;
-  width: min(1040px, 92vw);
+  width: min(960px, 90vw);
   aspect-ratio: 105 / 68;
-  max-height: calc(100vh - 190px);
+  max-height: calc(100vh - 285px);
 }
 #pitch { width: 100%; height: 100%; display: block; border-radius: 18px; }
+
+.sig-stage {
+  width: min(960px, 90vw);
+  height: 92px;
+}
+#signals { width: 100%; height: 100%; display: block; cursor: ew-resize; }
 
 .drop-pill {
   position: absolute;

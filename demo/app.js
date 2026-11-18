@@ -3,20 +3,20 @@ import { CLASSES, CODE_MAP, decodeV9m1, evaluateMetrics, extractSpells } from '.
 const COLORS = { 0: '#8fd3ff', 1: '#f2a99f', 2: '#f3e2a6', 3: '#55555c' };
 const NAMES = { 0: 'Home', 1: 'Away', 2: 'Dead ball', 3: 'Unknown' };
 const MODES = {
-  v9m1: (sc) => decodeV9m1(sc, sc.defaults).pred,
+  v9m1: (sc) => decodeV9m1(sc, sc.defaults),
   tcn: (sc) => {
     const { pH, pA, pD } = sc.signals;
     const out = new Uint8Array(sc.nFrames);
     for (let i = 0; i < sc.nFrames; i++) {
       out[i] = pH[i] >= pA[i] && pH[i] >= pD[i] ? 0 : (pA[i] >= pD[i] ? 1 : 2);
     }
-    return out;
+    return { pred: out, wt: null };
   },
   rules: (sc) => {
     const r = sc.signals.rules;
     const out = new Uint8Array(sc.nFrames);
     for (let i = 0; i < sc.nFrames; i++) out[i] = CODE_MAP[r[i]] ?? 2;
-    return out;
+    return { pred: out, wt: null };
   },
 };
 
@@ -52,9 +52,9 @@ async function loadScenario(idx) {
   state.sc = await res.json();
   state.cache = {};
   for (const m of Object.keys(MODES)) {
-    const pred = MODES[m](state.sc);
+    const { pred, wt } = MODES[m](state.sc);
     const metrics = evaluateMetrics(state.sc.signals.gt, pred);
-    state.cache[m] = { pred, metrics };
+    state.cache[m] = { pred, wt, metrics };
   }
   state.frame = findFirstHighlight();
   renderHome();
@@ -265,20 +265,153 @@ function nextHighlight() {
 function renderDive() {
   if (!state.sc) return;
   const f = Math.floor(state.frame);
+  const sig = state.sc.signals;
   const pred = active().pred[f];
-  const gt = CODE_MAP[state.sc.signals.gt[f]] ?? 2;
+  const gt = CODE_MAP[sig.gt[f]] ?? 2;
   const agree = pred === gt;
 
   $('timeTxt').textContent = fmtTime(f);
   $('diveSub').textContent = `${fmtTime(f)} · ${NAMES[pred]}`;
-  $('dropPill').hidden = state.sc.signals.bVis[f] === '1';
+  $('dropPill').hidden = sig.bVis[f] === '1';
 
   const vEl = $('fverdict');
   vEl.textContent = agree ? 'Matches GT' : `GT: ${NAMES[gt]}`;
   vEl.className = 'fverdict' + (agree ? '' : ' miss');
 
+  // 1-line live explanation of why the model chooses this label right now
+  const probs = [sig.pH[f], sig.pA[f], sig.pD[f]];
+  const tcnArg = probs[0] >= probs[1] && probs[0] >= probs[2] ? 0 : (probs[1] >= probs[2] ? 1 : 2);
+  const tcnPct = Math.round(probs[tcnArg] / 10);
+  const ruleCode = CODE_MAP[sig.rules[f]] ?? 2;
+  const conf = sig.conf[f] * 0.001;
+  const wt = state.cache.v9m1.wt ? state.cache.v9m1.wt[f] : 1.0;
+
+  let reason;
+  if (state.mode === 'tcn') {
+    reason = `TCN raw argmax · <b style="color:${COLORS[tcnArg]}">${NAMES[tcnArg]} ${tcnPct}%</b> (no rules, no Viterbi smoothing)`;
+  } else if (state.mode === 'rules') {
+    reason = sig.bVis[f] === '0'
+      ? `No ball tracking · <b>Rules</b> hold prior state (${NAMES[ruleCode]})`
+      : `Kinematic rules (p3_notag) · <b style="color:${COLORS[ruleCode]}">${NAMES[ruleCode]}</b> · contact conf ${conf.toFixed(2)}`;
+  } else if (sig.bVis[f] === '0') {
+    reason = `Ball lost · <b>TCN ±20 s</b> bridges gap (${NAMES[tcnArg]} ${tcnPct}%) → <b style="color:${COLORS[pred]}">${NAMES[pred]}</b>`;
+  } else if (conf > 0.35 && ruleCode !== tcnArg) {
+    reason = `Clear contact (conf ${conf.toFixed(2)}) lowers TCN weight to <b>w_t ${wt.toFixed(2)}</b> · rules pull toward <b style="color:${COLORS[pred]}">${NAMES[pred]}</b>`;
+  } else if (tcnArg === ruleCode && pred === tcnArg) {
+    reason = `TCN (${tcnPct}%) &amp; rules agree · <b style="color:${COLORS[pred]}">${NAMES[pred]}</b>` + (conf > 0.35 ? ` · contact conf ${conf.toFixed(2)}` : '');
+  } else if (pred !== tcnArg && pred !== ruleCode) {
+    reason = `Viterbi minimum duration holds <b style="color:${COLORS[pred]}">${NAMES[pred]}</b> against brief flicker`;
+  } else {
+    reason = `TCN (${NAMES[tcnArg]} ${tcnPct}%) vs Rules (${NAMES[ruleCode]}) · <b>w_t ${wt.toFixed(2)}</b> → <b style="color:${COLORS[pred]}">${NAMES[pred]}</b>`;
+  }
+  $('decisionLine').innerHTML = reason;
+
   drawPitch();
+  drawSignals();
   drawScrub();
+}
+
+function drawSignals() {
+  const canvas = $('signals');
+  if (!canvas) return;
+  const rect = canvas.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  const w = Math.max(300, Math.floor(rect.width * dpr));
+  const h = Math.max(70, Math.floor(rect.height * dpr));
+  if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, w, h);
+
+  const left = 64 * dpr;
+  const tw = w - left - 4 * dpr;
+  const T = state.sc.nFrames;
+  const halfWin = 500; // ±20 s at 25 fps (exact TCN receptive field)
+  const fCur = state.frame;
+  const fStart = fCur - halfWin;
+  const fSpan = halfWin * 2;
+  const xToF = (px) => Math.round(fStart + (px / tw) * fSpan);
+
+  const sig = state.sc.signals;
+  const pred = active().pred;
+  const rows = [
+    { lbl: 'TCN ±20s', y: 4 * dpr, rh: 26 * dpr },
+    { lbl: 'Rules·conf', y: 36 * dpr, rh: 22 * dpr },
+    { lbl: state.mode, y: 64 * dpr, rh: 20 * dpr },
+  ];
+
+  ctx.font = `500 ${10 * dpr}px "JetBrains Mono", monospace`;
+  ctx.textBaseline = 'middle';
+  rows.forEach((r) => {
+    ctx.fillStyle = '#63636c';
+    ctx.fillText(r.lbl, 0, r.y + r.rh / 2);
+    ctx.fillStyle = 'rgba(255,255,255,0.03)';
+    ctx.fillRect(left, r.y, tw, r.rh);
+  });
+
+  const pxCount = Math.floor(tw);
+  for (let px = 0; px < pxCount; px++) {
+    const f = xToF(px);
+    if (f < 0 || f >= T) continue;
+    const x = left + px;
+
+    // Row 0: TCN stacked probabilities
+    const r0 = rows[0];
+    const hH = (sig.pH[f] * 0.001) * r0.rh;
+    const hA = (sig.pA[f] * 0.001) * r0.rh;
+    ctx.fillStyle = 'rgba(143,211,255,0.82)';
+    ctx.fillRect(x, r0.y, 1.5, hH);
+    ctx.fillStyle = 'rgba(242,169,159,0.82)';
+    ctx.fillRect(x, r0.y + hH, 1.5, hA);
+    ctx.fillStyle = 'rgba(243,226,166,0.55)';
+    ctx.fillRect(x, r0.y + hH + hA, 1.5, r0.rh - hH - hA);
+
+    // Row 1: Rules strip + dropout ticks
+    const r1 = rows[1];
+    const rc = CODE_MAP[sig.rules[f]] ?? 2;
+    ctx.fillStyle = COLORS[rc];
+    ctx.globalAlpha = 0.42;
+    ctx.fillRect(x, r1.y + r1.rh * 0.58, 1.5, r1.rh * 0.42);
+    if (sig.bVis[f] === '0') {
+      ctx.fillStyle = COLORS[2];
+      ctx.globalAlpha = 0.9;
+      ctx.fillRect(x, r1.y, 1.5, 2.5 * dpr);
+    }
+
+    // Row 2: Active model output + tiny GT mismatch bar underneath
+    const r2 = rows[2];
+    const pCode = pred[f];
+    ctx.fillStyle = COLORS[pCode];
+    ctx.globalAlpha = pCode === 2 ? 0.5 : 0.9;
+    ctx.fillRect(x, r2.y + 2 * dpr, 1.5, r2.rh - 5 * dpr);
+    if ((CODE_MAP[sig.gt[f]] ?? 2) !== pCode) {
+      ctx.fillStyle = '#f2a99f';
+      ctx.globalAlpha = 0.9;
+      ctx.fillRect(x, r2.y + r2.rh - 2 * dpr, 1.5, 2 * dpr);
+    }
+  }
+  ctx.globalAlpha = 1;
+
+  // Conf_fisica filament over Row 1
+  ctx.beginPath();
+  let pen = false;
+  for (let px = 0; px < pxCount; px += 2) {
+    const f = xToF(px);
+    if (f < 0 || f >= T) { pen = false; continue; }
+    const cy = rows[1].y + (1 - sig.conf[f] * 0.001) * (rows[1].rh - 4 * dpr) + 2 * dpr;
+    if (!pen) { ctx.moveTo(left + px, cy); pen = true; } else ctx.lineTo(left + px, cy);
+  }
+  ctx.strokeStyle = '#b7a4ff';
+  ctx.lineWidth = 1.4 * dpr;
+  ctx.stroke();
+
+  // Center playhead ("NOW")
+  const cx = left + tw / 2;
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 1.5 * dpr;
+  ctx.beginPath();
+  ctx.moveTo(cx, 2 * dpr);
+  ctx.lineTo(cx, h - 2 * dpr);
+  ctx.stroke();
 }
 
 function drawPitch() {
@@ -431,6 +564,26 @@ function bindUI() {
   sw.addEventListener('pointerdown', (e) => { drag = true; sw.setPointerCapture(e.pointerId); seekEv(e); });
   sw.addEventListener('pointermove', (e) => { if (drag) seekEv(e); });
   sw.addEventListener('pointerup', () => { drag = false; });
+
+  // Drag scrolling signals ribbon horizontally
+  const sigEl = $('signals');
+  let sigDrag = false;
+  let sigStartX = 0;
+  let sigStartFrame = 0;
+  sigEl.addEventListener('pointerdown', (e) => {
+    sigDrag = true;
+    sigStartX = e.clientX;
+    sigStartFrame = state.frame;
+    sigEl.setPointerCapture(e.pointerId);
+  });
+  sigEl.addEventListener('pointermove', (e) => {
+    if (!sigDrag || !state.sc) return;
+    const dx = e.clientX - sigStartX;
+    const framesPerPx = 1000 / Math.max(200, sigEl.getBoundingClientRect().width - 64);
+    state.frame = Math.max(0, Math.min(state.sc.nFrames - 1, Math.round(sigStartFrame - dx * framesPerPx)));
+    renderDive();
+  });
+  sigEl.addEventListener('pointerup', () => { sigDrag = false; });
 
   $('infoBtn').addEventListener('click', () => { $('modal').hidden = false; });
   $('mx').addEventListener('click', () => { $('modal').hidden = true; });
