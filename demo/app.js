@@ -411,40 +411,27 @@ function drawPitch() {
   const exact = state.frame / stride;
   const i0 = Math.min(posArr.length - 1, Math.floor(exact));
   const i1 = Math.min(posArr.length - 1, i0 + 1);
-  const ip = Math.max(0, i0 - 1);
   const alpha = exact - i0;
-  const interp = (a, b) => (a == null ? null : b == null ? a : a + (b - a) * alpha) * 0.1;
+  const interp = (a, b) => (a == null ? null : (b == null ? a : a + (b - a) * alpha) * 0.1);
 
   const f0 = posArr[i0];
   const f1 = posArr[i1];
-  const fp = posArr[ip];
   const teams = state.sc.teams;
   for (let k = 0; k < teams.length; k++) {
     const px = interp(f0.p[k * 2], f1.p[k * 2]);
     const py = interp(f0.p[k * 2 + 1], f1.p[k * 2 + 1]);
     if (px == null || py == null) continue;
-    const prevX = fp.p[k * 2] != null ? fp.p[k * 2] * 0.1 : px;
-    const prevY = fp.p[k * 2 + 1] != null ? fp.p[k * 2 + 1] * 0.1 : py;
-    const vx = px - prevX;
-    const vy = py - prevY;
-    const col = teams[k] === 0 ? COLORS[0] : COLORS[1];
-
-    if (Math.hypot(vx, vy) > 0.05) {
-      ctx.beginPath();
-      ctx.moveTo(sx(px), sy(py));
-      ctx.lineTo(sx(px + vx * 3.5), sy(py + vy * 3.5));
-      ctx.strokeStyle = col;
-      ctx.globalAlpha = 0.4;
-      ctx.lineWidth = 1.6 * dpr;
-      ctx.stroke();
-      ctx.globalAlpha = 1;
-    }
-
     ctx.beginPath();
     ctx.arc(sx(px), sy(py), 6.2 * dpr, 0, Math.PI * 2);
-    ctx.fillStyle = col;
+    ctx.fillStyle = teams[k] === 0 ? COLORS[0] : COLORS[1];
     ctx.fill();
   }
+
+  const fInt = Math.floor(state.frame);
+  const conf = state.sc.signals.conf[fInt] * 0.001;
+  const pred = active().pred[fInt];
+  const bx = interp(f0.b[0], f1.b[0]);
+  const by = interp(f0.b[1], f1.b[1]);
 
   ctx.beginPath();
   let moved = false;
@@ -455,15 +442,11 @@ function drawPitch() {
     const y = sy(b[1] * 0.1);
     if (!moved) { ctx.moveTo(x, y); moved = true; } else ctx.lineTo(x, y);
   }
+  if (bx != null && by != null && moved) ctx.lineTo(sx(bx), sy(by));
   ctx.strokeStyle = 'rgba(255,255,255,0.28)';
   ctx.lineWidth = 1.6 * dpr;
   ctx.stroke();
 
-  const fInt = Math.floor(state.frame);
-  const conf = state.sc.signals.conf[fInt] * 0.001;
-  const pred = active().pred[fInt];
-  const bx = interp(f0.b[0], f1.b[0]);
-  const by = interp(f0.b[1], f1.b[1]);
   if (bx != null && by != null) {
     if (conf > 0.08) {
       ctx.beginPath();
@@ -498,7 +481,7 @@ function drawSignals() {
   const halfWin = 500;
   const fStart = state.frame - halfWin;
   const fSpan = halfWin * 2;
-  const xToF = (px) => Math.round(fStart + (px / tw) * fSpan);
+  const fToX = (f) => left + ((f - fStart) / fSpan) * tw;
 
   const sig = state.sc.signals;
   const pred = active().pred;
@@ -517,53 +500,55 @@ function drawSignals() {
     ctx.fillRect(left, r.y, tw, r.rh);
   });
 
-  const pxCount = Math.floor(tw);
-  for (let px = 0; px < pxCount; px++) {
-    const f = xToF(px);
-    if (f < 0 || f >= T) continue;
-    const x = left + px;
+  const f0 = Math.max(0, Math.floor(fStart));
+  const f1 = Math.min(T - 1, Math.ceil(fStart + fSpan));
+  const stepF = Math.max(1, Math.floor(fSpan / tw));
+  for (let f = f0; f <= f1; f += stepF) {
+    const x0 = Math.max(left, fToX(f));
+    const x1 = Math.min(left + tw, fToX(f + stepF));
+    const cw = Math.max(1, x1 - x0);
 
     const r0 = rows[0];
     const hH = (sig.pH[f] * 0.001) * r0.rh;
     const hA = (sig.pA[f] * 0.001) * r0.rh;
     ctx.fillStyle = 'rgba(143,211,255,0.82)';
-    ctx.fillRect(x, r0.y, 1.5, hH);
+    ctx.fillRect(x0, r0.y, cw, hH);
     ctx.fillStyle = 'rgba(242,169,159,0.82)';
-    ctx.fillRect(x, r0.y + hH, 1.5, hA);
+    ctx.fillRect(x0, r0.y + hH, cw, hA);
     ctx.fillStyle = 'rgba(243,226,166,0.55)';
-    ctx.fillRect(x, r0.y + hH + hA, 1.5, r0.rh - hH - hA);
+    ctx.fillRect(x0, r0.y + hH + hA, cw, r0.rh - hH - hA);
 
     const r1 = rows[1];
     const rc = CODE_MAP[sig.rules[f]] ?? 2;
     ctx.fillStyle = COLORS[rc];
     ctx.globalAlpha = 0.42;
-    ctx.fillRect(x, r1.y + r1.rh * 0.58, 1.5, r1.rh * 0.42);
+    ctx.fillRect(x0, r1.y + r1.rh * 0.58, cw, r1.rh * 0.42);
     if (sig.bVis[f] === '0') {
       ctx.fillStyle = COLORS[2];
       ctx.globalAlpha = 0.9;
-      ctx.fillRect(x, r1.y, 1.5, 2.5 * dpr);
+      ctx.fillRect(x0, r1.y, cw, 2.5 * dpr);
     }
 
     const r2 = rows[2];
     const pCode = pred[f];
     ctx.fillStyle = COLORS[pCode];
     ctx.globalAlpha = pCode === 2 ? 0.5 : 0.9;
-    ctx.fillRect(x, r2.y + 2 * dpr, 1.5, r2.rh - 5 * dpr);
+    ctx.fillRect(x0, r2.y + 2 * dpr, cw, r2.rh - 5 * dpr);
     if ((CODE_MAP[sig.gt[f]] ?? 2) !== pCode) {
       ctx.fillStyle = '#f2a99f';
       ctx.globalAlpha = 0.9;
-      ctx.fillRect(x, r2.y + r2.rh - 2 * dpr, 1.5, 2 * dpr);
+      ctx.fillRect(x0, r2.y + r2.rh - 2 * dpr, cw, 2 * dpr);
     }
   }
   ctx.globalAlpha = 1;
 
   ctx.beginPath();
   let pen = false;
-  for (let px = 0; px < pxCount; px += 2) {
-    const f = xToF(px);
-    if (f < 0 || f >= T) { pen = false; continue; }
+  for (let f = f0; f <= f1; f += 2) {
+    const x = fToX(f);
+    if (x < left || x > left + tw) { pen = false; continue; }
     const cy = rows[1].y + (1 - sig.conf[f] * 0.001) * (rows[1].rh - 4 * dpr) + 2 * dpr;
-    if (!pen) { ctx.moveTo(left + px, cy); pen = true; } else ctx.lineTo(left + px, cy);
+    if (!pen) { ctx.moveTo(x, cy); pen = true; } else ctx.lineTo(x, cy);
   }
   ctx.strokeStyle = '#b7a4ff';
   ctx.lineWidth = 1.4 * dpr;
@@ -701,7 +686,7 @@ function loop(now) {
       if (entry && cv) drawMiniBar(cv, entry.sc, entry.cache.v9m1.metrics.predAllRuns, (state.scanPhase + idx * 0.33) % 1);
     });
   } else if (state.playing && state.view === 'dive' && state.sc) {
-    const dt = (now - state.lastTick) / 1000;
+    const dt = Math.min(0.1, (now - state.lastTick) / 1000);
     state.lastTick = now;
     state.frame += dt * state.sc.fps * SPEEDS[state.speedIdx];
     if (state.frame >= state.sc.nFrames) state.frame = 0;
