@@ -1,4 +1,4 @@
-import { CLASSES, CODE_MAP, decodeV9m1, evaluateMetrics, extractSpells } from './viterbi.js';
+import { CODE_MAP, decodeV9m1, evaluateMetrics } from './viterbi.js';
 
 const COLORS = { 0: '#8fd3ff', 1: '#f2a99f', 2: '#f3e2a6', 3: '#55555c' };
 const NAMES = { 0: 'Home', 1: 'Away', 2: 'Dead ball', 3: 'Unknown' };
@@ -20,15 +20,20 @@ const MODES = {
   },
 };
 
+const SPEEDS = [1, 2, 0.5];
+
 const state = {
   manifest: [],
+  scenarios: {},
   scIdx: 0,
   sc: null,
   mode: 'v9m1',
   cache: {},
+  view: 'landing', // 'landing' | 'home' | 'dive'
   frame: 0,
   playing: false,
-  inDive: false,
+  speedIdx: 0,
+  scanPhase: 0,
   lastTick: 0,
 };
 
@@ -38,27 +43,109 @@ async function init() {
   const res = await fetch('data/manifest.json');
   state.manifest = await res.json();
   bindUI();
-  await loadScenario(0);
+  await buildLandingCards();
   requestAnimationFrame(loop);
 }
 
-async function loadScenario(idx) {
+async function ensureScenario(idx) {
+  const item = state.manifest[idx];
+  if (!state.scenarios[item.id]) {
+    const res = await fetch(item.file);
+    const sc = await res.json();
+    const cache = {};
+    for (const m of Object.keys(MODES)) {
+      const { pred, wt } = MODES[m](sc);
+      cache[m] = { pred, wt, metrics: evaluateMetrics(sc.signals.gt, pred) };
+    }
+    state.scenarios[item.id] = { sc, cache };
+  }
+  return state.scenarios[item.id];
+}
+
+async function buildLandingCards() {
+  const grid = $('matchGrid');
+  grid.innerHTML = '';
+
+  const loaded = await Promise.all(state.manifest.map((_, i) => ensureScenario(i)));
+  state.manifest.forEach((item, idx) => {
+    const { sc, cache } = loaded[idx];
+    const v9 = cache.v9m1.metrics;
+    const btn = document.createElement('button');
+    btn.className = 'mcard';
+    btn.innerHTML = `
+      <div class="mcard-top">
+        <b>${item.title}</b>
+        <span>${v9.spellF1.toFixed(3)} Spell-F1</span>
+      </div>
+      <p>${item.subtitle}</p>
+      <div class="mcard-bar"><canvas></canvas></div>
+      <div class="mcard-foot">
+        <span>${v9.nPredSpells} spells · Metrica sample</span>
+        <span>Explore →</span>
+      </div>
+    `;
+    btn.addEventListener('click', (e) => enterMatch(idx, e.clientX, e.clientY));
+    grid.appendChild(btn);
+
+    const cv = btn.querySelector('canvas');
+    drawMiniBar(cv, sc, v9.predAllRuns, 0);
+  });
+}
+
+function drawMiniBar(canvas, sc, runs, pulseFrac) {
+  const w = 360;
+  const h = 14;
+  if (canvas.width !== w) { canvas.width = w; canvas.height = h; }
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, w, h);
+  const T = sc.nFrames;
+  for (const r of runs) {
+    const x0 = (r.start / T) * w;
+    const x1 = (r.stop / T) * w;
+    ctx.fillStyle = COLORS[r.code];
+    ctx.globalAlpha = r.code === 2 ? 0.35 : 0.85;
+    ctx.fillRect(x0, 2, Math.max(1.5, x1 - x0 - 1), h - 4);
+  }
+  ctx.globalAlpha = 1;
+  const px = pulseFrac * w;
+  const g = ctx.createLinearGradient(px - 28, 0, px + 8, 0);
+  g.addColorStop(0, 'rgba(255,255,255,0)');
+  g.addColorStop(1, 'rgba(255,255,255,0.65)');
+  ctx.fillStyle = g;
+  ctx.fillRect(px - 28, 0, 36, h);
+}
+
+async function enterMatch(idx, ox = window.innerWidth / 2, oy = window.innerHeight / 2) {
+  document.body.style.setProperty('--ox', `${ox}px`);
+  document.body.style.setProperty('--oy', `${oy}px`);
+  await selectScenario(idx);
+
+  state.view = 'home';
+  document.body.classList.add('to-home');
+  setTimeout(() => {
+    $('landing').hidden = true;
+    $('home').hidden = false;
+    document.body.classList.remove('to-home', 'view-landing');
+    renderHome();
+  }, 320);
+}
+
+function backToLanding() {
+  state.view = 'landing';
+  $('home').hidden = true;
+  $('landing').hidden = false;
+  document.body.classList.add('view-landing');
+}
+
+async function selectScenario(idx) {
   state.scIdx = idx % state.manifest.length;
   const item = state.manifest[state.scIdx];
+  const { sc, cache } = await ensureScenario(state.scIdx);
+  state.sc = sc;
+  state.cache = cache;
+  state.frame = findFirstHighlight();
   $('matchName').textContent = item.title;
   $('diveTitle').textContent = item.title;
-
-  const res = await fetch(item.file);
-  state.sc = await res.json();
-  state.cache = {};
-  for (const m of Object.keys(MODES)) {
-    const { pred, wt } = MODES[m](state.sc);
-    const metrics = evaluateMetrics(state.sc.signals.gt, pred);
-    state.cache[m] = { pred, wt, metrics };
-  }
-  state.frame = findFirstHighlight();
-  renderHome();
-  if (state.inDive) renderDive();
 }
 
 function active() {
@@ -70,8 +157,8 @@ function setMode(m) {
   document.querySelectorAll('#modeSeg button, #diveSeg button').forEach((b) => {
     b.classList.toggle('on', b.dataset.m === m);
   });
-  renderHome();
-  if (state.inDive) renderDive();
+  if (state.view === 'home') renderHome();
+  if (state.view === 'dive') renderDive();
 }
 
 function renderHome() {
@@ -82,7 +169,6 @@ function renderHome() {
   $('sum').innerHTML =
     `<b>${label}</b> scores <b>${metrics.spellF1.toFixed(3)} Spell-F1</b> across ` +
     `<b>${metrics.nPredSpells}</b> possessions (truth: ${metrics.nGtSpells}) on ${degNote}. Click any spell to watch.`;
-
   drawStream();
 }
 
@@ -103,7 +189,6 @@ function drawStream() {
     return n;
   };
 
-  // Subtle labels on left edge
   const addTag = (y, txt) => {
     const t = el('text', { x: 0, y, fill: '#55555c', 'font-size': '10.5', 'font-family': 'JetBrains Mono, monospace' });
     t.textContent = txt;
@@ -112,9 +197,7 @@ function drawStream() {
   addTag(82, state.mode.toUpperCase());
   addTag(172, 'CONTACT CONFIDENCE');
 
-  // 1. Quiet Ground Truth reference strip (y = 38)
-  const gtRuns = active().metrics.gtAllRuns;
-  for (const r of gtRuns) {
+  for (const r of active().metrics.gtAllRuns) {
     el('rect', {
       x: xOf(r.start).toFixed(1),
       y: 38,
@@ -126,25 +209,21 @@ function drawStream() {
     });
   }
 
-  // 2. Main Interactive Prediction Spells (y = 94, tall clean capsules)
-  const predRuns = active().metrics.predAllRuns;
-  for (const r of predRuns) {
+  for (const r of active().metrics.predAllRuns) {
     const x0 = xOf(r.start);
     const x1 = xOf(r.stop);
-    const w = Math.max(2.5, x1 - x0 - 1.5);
     const rect = el('rect', {
       class: 'spell',
       x: x0.toFixed(1),
       y: 94,
-      width: w.toFixed(1),
+      width: Math.max(2.5, x1 - x0 - 1.5).toFixed(1),
       height: 36,
       rx: 7,
       fill: COLORS[r.code],
       opacity: r.code === 2 ? '0.45' : '0.92',
     });
-
     rect.addEventListener('mouseenter', (e) => showTip(e, r));
-    rect.addEventListener('mousemove', (e) => moveTip(e));
+    rect.addEventListener('mousemove', moveTip);
     rect.addEventListener('mouseleave', () => { $('tip').hidden = true; });
     rect.addEventListener('click', (e) => {
       $('tip').hidden = true;
@@ -152,7 +231,6 @@ function drawStream() {
     });
   }
 
-  // 3. Ball dropout dashes along baseline (y = 142)
   const bVis = state.sc.signals.bVis;
   let i = 0;
   while (i < T) {
@@ -161,49 +239,29 @@ function drawStream() {
       while (j < T && bVis[j] === '0') j++;
       if (j - i > 6) {
         el('line', {
-          x1: xOf(i).toFixed(1),
-          y1: 142,
-          x2: xOf(j).toFixed(1),
-          y2: 142,
-          stroke: '#f3e2a6',
-          'stroke-width': '2',
-          'stroke-dasharray': '3 3',
-          opacity: '0.65',
+          x1: xOf(i).toFixed(1), y1: 142, x2: xOf(j).toFixed(1), y2: 142,
+          stroke: '#f3e2a6', 'stroke-width': '2', 'stroke-dasharray': '3 3', opacity: '0.65',
         });
       }
       i = j;
-    } else {
-      i++;
-    }
+    } else i++;
   }
 
-  // 4. Delicate glowing contact confidence filament (y = 184..216)
   const conf = state.sc.signals.conf;
   const pts = [];
-  const step = 12;
-  for (let f = 0; f < T; f += step) {
-    const y = 214 - (conf[f] * 0.001) * 28;
-    pts.push(`${xOf(f).toFixed(1)},${y.toFixed(1)}`);
+  for (let f = 0; f < T; f += 12) {
+    pts.push(`${xOf(f).toFixed(1)},${(214 - (conf[f] * 0.001) * 28).toFixed(1)}`);
   }
-  el('polyline', {
-    fill: 'none',
-    stroke: '#b7a4ff',
-    'stroke-width': '1.4',
-    opacity: '0.55',
-    points: pts.join(' '),
-  });
+  el('polyline', { fill: 'none', stroke: '#b7a4ff', 'stroke-width': '1.4', opacity: '0.58', points: pts.join(' ') });
 }
 
 function showTip(e, run) {
   const dur = ((run.stop - run.start) / state.sc.fps).toFixed(1);
-  const t0 = fmtTime(run.start);
   let dropFrames = 0;
-  for (let f = run.start; f < run.stop; f++) {
-    if (state.sc.signals.bVis[f] === '0') dropFrames++;
-  }
+  for (let f = run.start; f < run.stop; f++) if (state.sc.signals.bVis[f] === '0') dropFrames++;
   const dropTxt = dropFrames > 10 ? ` · ${Math.round((100 * dropFrames) / (run.stop - run.start))}% no ball` : '';
   const tip = $('tip');
-  tip.innerHTML = `<b style="color:${COLORS[run.code]}">${NAMES[run.code]}</b> · ${dur} s<small>${t0}${dropTxt} · click to watch</small>`;
+  tip.innerHTML = `<b style="color:${COLORS[run.code]}">${NAMES[run.code]}</b> · ${dur} s<small>${fmtTime(run.start)}${dropTxt} · click to watch</small>`;
   tip.hidden = false;
   moveTip(e);
 }
@@ -218,7 +276,7 @@ function openDive(startFrame = state.frame, ox = window.innerWidth / 2, oy = win
   document.body.style.setProperty('--ox', `${ox}px`);
   document.body.style.setProperty('--oy', `${oy}px`);
   state.frame = startFrame;
-  state.inDive = true;
+  state.view = 'dive';
   state.playing = true;
   state.lastTick = performance.now();
   $('playBtn').textContent = '❚❚';
@@ -232,11 +290,11 @@ function openDive(startFrame = state.frame, ox = window.innerWidth / 2, oy = win
 
 function closeDive() {
   state.playing = false;
-  state.inDive = false;
+  state.view = 'home';
   const full = $('full');
   full.classList.remove('on');
   document.body.classList.remove('dive');
-  setTimeout(() => { if (!state.inDive) full.hidden = true; }, 380);
+  setTimeout(() => { if (state.view !== 'dive') full.hidden = true; }, 380);
 }
 
 function findFirstHighlight() {
@@ -278,29 +336,29 @@ function renderDive() {
   vEl.textContent = agree ? 'Matches GT' : `GT: ${NAMES[gt]}`;
   vEl.className = 'fverdict' + (agree ? '' : ' miss');
 
-  // 1-line live explanation of why the model chooses this label right now
   const probs = [sig.pH[f], sig.pA[f], sig.pD[f]];
   const tcnArg = probs[0] >= probs[1] && probs[0] >= probs[2] ? 0 : (probs[1] >= probs[2] ? 1 : 2);
   const tcnPct = Math.round(probs[tcnArg] / 10);
   const ruleCode = CODE_MAP[sig.rules[f]] ?? 2;
   const conf = sig.conf[f] * 0.001;
-  const wt = state.cache.v9m1.wt ? state.cache.v9m1.wt[f] : 1.0;
+  const wt = state.mode === 'tcn' ? 1.0 : (state.mode === 'rules' ? 0.0 : (state.cache.v9m1.wt ? state.cache.v9m1.wt[f] : 1.0));
+  $('wtFill').style.width = `${Math.round(wt * 100)}%`;
 
   let reason;
   if (state.mode === 'tcn') {
-    reason = `TCN raw argmax · <b style="color:${COLORS[tcnArg]}">${NAMES[tcnArg]} ${tcnPct}%</b> (no rules, no Viterbi smoothing)`;
+    reason = `TCN raw argmax · <b style="color:${COLORS[tcnArg]}">${NAMES[tcnArg]} ${tcnPct}%</b>`;
   } else if (state.mode === 'rules') {
     reason = sig.bVis[f] === '0'
-      ? `No ball tracking · <b>Rules</b> hold prior state (${NAMES[ruleCode]})`
-      : `Kinematic rules (p3_notag) · <b style="color:${COLORS[ruleCode]}">${NAMES[ruleCode]}</b> · contact conf ${conf.toFixed(2)}`;
+      ? `No ball tracking · <b>Rules</b> hold (${NAMES[ruleCode]})`
+      : `Kinematic rules (p3_notag) · <b style="color:${COLORS[ruleCode]}">${NAMES[ruleCode]}</b> · conf ${conf.toFixed(2)}`;
   } else if (sig.bVis[f] === '0') {
     reason = `Ball lost · <b>TCN ±20 s</b> bridges gap (${NAMES[tcnArg]} ${tcnPct}%) → <b style="color:${COLORS[pred]}">${NAMES[pred]}</b>`;
   } else if (conf > 0.35 && ruleCode !== tcnArg) {
-    reason = `Clear contact (conf ${conf.toFixed(2)}) lowers TCN weight to <b>w_t ${wt.toFixed(2)}</b> · rules pull toward <b style="color:${COLORS[pred]}">${NAMES[pred]}</b>`;
+    reason = `Clear contact (conf ${conf.toFixed(2)}) shifts weight to rules (<b>w_t ${wt.toFixed(2)}</b>) → <b style="color:${COLORS[pred]}">${NAMES[pred]}</b>`;
   } else if (tcnArg === ruleCode && pred === tcnArg) {
-    reason = `TCN (${tcnPct}%) &amp; rules agree · <b style="color:${COLORS[pred]}">${NAMES[pred]}</b>` + (conf > 0.35 ? ` · contact conf ${conf.toFixed(2)}` : '');
+    reason = `TCN (${tcnPct}%) &amp; rules agree · <b style="color:${COLORS[pred]}">${NAMES[pred]}</b>` + (conf > 0.35 ? ` · conf ${conf.toFixed(2)}` : '');
   } else if (pred !== tcnArg && pred !== ruleCode) {
-    reason = `Viterbi minimum duration holds <b style="color:${COLORS[pred]}">${NAMES[pred]}</b> against brief flicker`;
+    reason = `Viterbi minimum duration holds <b style="color:${COLORS[pred]}">${NAMES[pred]}</b> against flicker`;
   } else {
     reason = `TCN (${NAMES[tcnArg]} ${tcnPct}%) vs Rules (${NAMES[ruleCode]}) · <b>w_t ${wt.toFixed(2)}</b> → <b style="color:${COLORS[pred]}">${NAMES[pred]}</b>`;
   }
@@ -309,109 +367,6 @@ function renderDive() {
   drawPitch();
   drawSignals();
   drawScrub();
-}
-
-function drawSignals() {
-  const canvas = $('signals');
-  if (!canvas) return;
-  const rect = canvas.getBoundingClientRect();
-  const dpr = window.devicePixelRatio || 1;
-  const w = Math.max(300, Math.floor(rect.width * dpr));
-  const h = Math.max(70, Math.floor(rect.height * dpr));
-  if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
-  const ctx = canvas.getContext('2d');
-  ctx.clearRect(0, 0, w, h);
-
-  const left = 64 * dpr;
-  const tw = w - left - 4 * dpr;
-  const T = state.sc.nFrames;
-  const halfWin = 500; // ±20 s at 25 fps (exact TCN receptive field)
-  const fCur = state.frame;
-  const fStart = fCur - halfWin;
-  const fSpan = halfWin * 2;
-  const xToF = (px) => Math.round(fStart + (px / tw) * fSpan);
-
-  const sig = state.sc.signals;
-  const pred = active().pred;
-  const rows = [
-    { lbl: 'TCN ±20s', y: 4 * dpr, rh: 26 * dpr },
-    { lbl: 'Rules·conf', y: 36 * dpr, rh: 22 * dpr },
-    { lbl: state.mode, y: 64 * dpr, rh: 20 * dpr },
-  ];
-
-  ctx.font = `500 ${10 * dpr}px "JetBrains Mono", monospace`;
-  ctx.textBaseline = 'middle';
-  rows.forEach((r) => {
-    ctx.fillStyle = '#63636c';
-    ctx.fillText(r.lbl, 0, r.y + r.rh / 2);
-    ctx.fillStyle = 'rgba(255,255,255,0.03)';
-    ctx.fillRect(left, r.y, tw, r.rh);
-  });
-
-  const pxCount = Math.floor(tw);
-  for (let px = 0; px < pxCount; px++) {
-    const f = xToF(px);
-    if (f < 0 || f >= T) continue;
-    const x = left + px;
-
-    // Row 0: TCN stacked probabilities
-    const r0 = rows[0];
-    const hH = (sig.pH[f] * 0.001) * r0.rh;
-    const hA = (sig.pA[f] * 0.001) * r0.rh;
-    ctx.fillStyle = 'rgba(143,211,255,0.82)';
-    ctx.fillRect(x, r0.y, 1.5, hH);
-    ctx.fillStyle = 'rgba(242,169,159,0.82)';
-    ctx.fillRect(x, r0.y + hH, 1.5, hA);
-    ctx.fillStyle = 'rgba(243,226,166,0.55)';
-    ctx.fillRect(x, r0.y + hH + hA, 1.5, r0.rh - hH - hA);
-
-    // Row 1: Rules strip + dropout ticks
-    const r1 = rows[1];
-    const rc = CODE_MAP[sig.rules[f]] ?? 2;
-    ctx.fillStyle = COLORS[rc];
-    ctx.globalAlpha = 0.42;
-    ctx.fillRect(x, r1.y + r1.rh * 0.58, 1.5, r1.rh * 0.42);
-    if (sig.bVis[f] === '0') {
-      ctx.fillStyle = COLORS[2];
-      ctx.globalAlpha = 0.9;
-      ctx.fillRect(x, r1.y, 1.5, 2.5 * dpr);
-    }
-
-    // Row 2: Active model output + tiny GT mismatch bar underneath
-    const r2 = rows[2];
-    const pCode = pred[f];
-    ctx.fillStyle = COLORS[pCode];
-    ctx.globalAlpha = pCode === 2 ? 0.5 : 0.9;
-    ctx.fillRect(x, r2.y + 2 * dpr, 1.5, r2.rh - 5 * dpr);
-    if ((CODE_MAP[sig.gt[f]] ?? 2) !== pCode) {
-      ctx.fillStyle = '#f2a99f';
-      ctx.globalAlpha = 0.9;
-      ctx.fillRect(x, r2.y + r2.rh - 2 * dpr, 1.5, 2 * dpr);
-    }
-  }
-  ctx.globalAlpha = 1;
-
-  // Conf_fisica filament over Row 1
-  ctx.beginPath();
-  let pen = false;
-  for (let px = 0; px < pxCount; px += 2) {
-    const f = xToF(px);
-    if (f < 0 || f >= T) { pen = false; continue; }
-    const cy = rows[1].y + (1 - sig.conf[f] * 0.001) * (rows[1].rh - 4 * dpr) + 2 * dpr;
-    if (!pen) { ctx.moveTo(left + px, cy); pen = true; } else ctx.lineTo(left + px, cy);
-  }
-  ctx.strokeStyle = '#b7a4ff';
-  ctx.lineWidth = 1.4 * dpr;
-  ctx.stroke();
-
-  // Center playhead ("NOW")
-  const cx = left + tw / 2;
-  ctx.strokeStyle = '#ffffff';
-  ctx.lineWidth = 1.5 * dpr;
-  ctx.beginPath();
-  ctx.moveTo(cx, 2 * dpr);
-  ctx.lineTo(cx, h - 2 * dpr);
-  ctx.stroke();
 }
 
 function drawPitch() {
@@ -456,23 +411,42 @@ function drawPitch() {
   const exact = state.frame / stride;
   const i0 = Math.min(posArr.length - 1, Math.floor(exact));
   const i1 = Math.min(posArr.length - 1, i0 + 1);
+  const ip = Math.max(0, i0 - 1);
   const alpha = exact - i0;
   const interp = (a, b) => (a == null ? null : b == null ? a : a + (b - a) * alpha) * 0.1;
 
   const f0 = posArr[i0];
   const f1 = posArr[i1];
+  const fp = posArr[ip];
   const teams = state.sc.teams;
   for (let k = 0; k < teams.length; k++) {
     const px = interp(f0.p[k * 2], f1.p[k * 2]);
     const py = interp(f0.p[k * 2 + 1], f1.p[k * 2 + 1]);
     if (px == null || py == null) continue;
+    const prevX = fp.p[k * 2] != null ? fp.p[k * 2] * 0.1 : px;
+    const prevY = fp.p[k * 2 + 1] != null ? fp.p[k * 2 + 1] * 0.1 : py;
+    const vx = px - prevX;
+    const vy = py - prevY;
+    const col = teams[k] === 0 ? COLORS[0] : COLORS[1];
+
+    // Subtle velocity vector
+    if (Math.hypot(vx, vy) > 0.05) {
+      ctx.beginPath();
+      ctx.moveTo(sx(px), sy(py));
+      ctx.lineTo(sx(px + vx * 3.5), sy(py + vy * 3.5));
+      ctx.strokeStyle = col;
+      ctx.globalAlpha = 0.4;
+      ctx.lineWidth = 1.6 * dpr;
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+
     ctx.beginPath();
-    ctx.arc(sx(px), sy(py), 6.5 * dpr, 0, Math.PI * 2);
-    ctx.fillStyle = teams[k] === 0 ? COLORS[0] : COLORS[1];
+    ctx.arc(sx(px), sy(py), 6.2 * dpr, 0, Math.PI * 2);
+    ctx.fillStyle = col;
     ctx.fill();
   }
 
-  // Ball trail
   ctx.beginPath();
   let moved = false;
   for (let back = 14; back >= 0; back--) {
@@ -508,6 +482,103 @@ function drawPitch() {
   }
 }
 
+function drawSignals() {
+  const canvas = $('signals');
+  if (!canvas) return;
+  const rect = canvas.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  const w = Math.max(300, Math.floor(rect.width * dpr));
+  const h = Math.max(70, Math.floor(rect.height * dpr));
+  if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, w, h);
+
+  const left = 64 * dpr;
+  const tw = w - left - 4 * dpr;
+  const T = state.sc.nFrames;
+  const halfWin = 500;
+  const fStart = state.frame - halfWin;
+  const fSpan = halfWin * 2;
+  const xToF = (px) => Math.round(fStart + (px / tw) * fSpan);
+
+  const sig = state.sc.signals;
+  const pred = active().pred;
+  const rows = [
+    { lbl: 'TCN ±20s', y: 4 * dpr, rh: 26 * dpr },
+    { lbl: 'Rules·conf', y: 36 * dpr, rh: 22 * dpr },
+    { lbl: state.mode, y: 64 * dpr, rh: 20 * dpr },
+  ];
+
+  ctx.font = `500 ${10 * dpr}px "JetBrains Mono", monospace`;
+  ctx.textBaseline = 'middle';
+  rows.forEach((r) => {
+    ctx.fillStyle = '#63636c';
+    ctx.fillText(r.lbl, 0, r.y + r.rh / 2);
+    ctx.fillStyle = 'rgba(255,255,255,0.03)';
+    ctx.fillRect(left, r.y, tw, r.rh);
+  });
+
+  const pxCount = Math.floor(tw);
+  for (let px = 0; px < pxCount; px++) {
+    const f = xToF(px);
+    if (f < 0 || f >= T) continue;
+    const x = left + px;
+
+    const r0 = rows[0];
+    const hH = (sig.pH[f] * 0.001) * r0.rh;
+    const hA = (sig.pA[f] * 0.001) * r0.rh;
+    ctx.fillStyle = 'rgba(143,211,255,0.82)';
+    ctx.fillRect(x, r0.y, 1.5, hH);
+    ctx.fillStyle = 'rgba(242,169,159,0.82)';
+    ctx.fillRect(x, r0.y + hH, 1.5, hA);
+    ctx.fillStyle = 'rgba(243,226,166,0.55)';
+    ctx.fillRect(x, r0.y + hH + hA, 1.5, r0.rh - hH - hA);
+
+    const r1 = rows[1];
+    const rc = CODE_MAP[sig.rules[f]] ?? 2;
+    ctx.fillStyle = COLORS[rc];
+    ctx.globalAlpha = 0.42;
+    ctx.fillRect(x, r1.y + r1.rh * 0.58, 1.5, r1.rh * 0.42);
+    if (sig.bVis[f] === '0') {
+      ctx.fillStyle = COLORS[2];
+      ctx.globalAlpha = 0.9;
+      ctx.fillRect(x, r1.y, 1.5, 2.5 * dpr);
+    }
+
+    const r2 = rows[2];
+    const pCode = pred[f];
+    ctx.fillStyle = COLORS[pCode];
+    ctx.globalAlpha = pCode === 2 ? 0.5 : 0.9;
+    ctx.fillRect(x, r2.y + 2 * dpr, 1.5, r2.rh - 5 * dpr);
+    if ((CODE_MAP[sig.gt[f]] ?? 2) !== pCode) {
+      ctx.fillStyle = '#f2a99f';
+      ctx.globalAlpha = 0.9;
+      ctx.fillRect(x, r2.y + r2.rh - 2 * dpr, 1.5, 2 * dpr);
+    }
+  }
+  ctx.globalAlpha = 1;
+
+  ctx.beginPath();
+  let pen = false;
+  for (let px = 0; px < pxCount; px += 2) {
+    const f = xToF(px);
+    if (f < 0 || f >= T) { pen = false; continue; }
+    const cy = rows[1].y + (1 - sig.conf[f] * 0.001) * (rows[1].rh - 4 * dpr) + 2 * dpr;
+    if (!pen) { ctx.moveTo(left + px, cy); pen = true; } else ctx.lineTo(left + px, cy);
+  }
+  ctx.strokeStyle = '#b7a4ff';
+  ctx.lineWidth = 1.4 * dpr;
+  ctx.stroke();
+
+  const cx = left + tw / 2;
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 1.5 * dpr;
+  ctx.beginPath();
+  ctx.moveTo(cx, 2 * dpr);
+  ctx.lineTo(cx, h - 2 * dpr);
+  ctx.stroke();
+}
+
 function drawScrub() {
   const canvas = $('scrub');
   const rect = canvas.getBoundingClientRect();
@@ -538,7 +609,18 @@ function fmtTime(f) {
 }
 
 function bindUI() {
-  $('matchBtn').addEventListener('click', () => loadScenario(state.scIdx + 1));
+  document.querySelectorAll('.pnode').forEach((n) => {
+    n.addEventListener('mouseenter', () => { $('pipeNote').textContent = n.dataset.note; });
+  });
+  $('pipeSvg').addEventListener('mouseleave', () => {
+    $('pipeNote').textContent = 'Hover any stage to inspect · pick a match below to explore';
+  });
+
+  $('toLanding').addEventListener('click', backToLanding);
+  $('matchBtn').addEventListener('click', async () => {
+    await selectScenario(state.scIdx + 1);
+    renderHome();
+  });
   $('openDive').addEventListener('click', (e) => openDive(state.frame, e.clientX, e.clientY));
   $('back').addEventListener('click', closeDive);
 
@@ -550,6 +632,10 @@ function bindUI() {
     state.playing = !state.playing;
     state.lastTick = performance.now();
     $('playBtn').textContent = state.playing ? '❚❚' : '▶';
+  });
+  $('speedBtn').addEventListener('click', () => {
+    state.speedIdx = (state.speedIdx + 1) % SPEEDS.length;
+    $('speedBtn').textContent = SPEEDS[state.speedIdx] + '×';
   });
   $('nextBtn').addEventListener('click', nextHighlight);
 
@@ -565,7 +651,6 @@ function bindUI() {
   sw.addEventListener('pointermove', (e) => { if (drag) seekEv(e); });
   sw.addEventListener('pointerup', () => { drag = false; });
 
-  // Drag scrolling signals ribbon horizontally
   const sigEl = $('signals');
   let sigDrag = false;
   let sigStartX = 0;
@@ -585,27 +670,41 @@ function bindUI() {
   });
   sigEl.addEventListener('pointerup', () => { sigDrag = false; });
 
-  $('infoBtn').addEventListener('click', () => { $('modal').hidden = false; });
+  const openModal = () => { $('modal').hidden = false; };
+  $('infoBtn').addEventListener('click', openModal);
+  $('infoBtn2').addEventListener('click', openModal);
   $('mx').addEventListener('click', () => { $('modal').hidden = true; });
   $('modal').addEventListener('click', (e) => { if (e.target === $('modal')) $('modal').hidden = true; });
 
   window.addEventListener('keydown', (e) => {
     if (e.code === 'Escape') {
       if (!$('modal').hidden) $('modal').hidden = true;
-      else if (state.inDive) closeDive();
-    } else if (state.inDive && e.code === 'Space') {
+      else if (state.view === 'dive') closeDive();
+      else if (state.view === 'home') backToLanding();
+    } else if (state.view === 'dive' && e.code === 'Space') {
       e.preventDefault();
       $('playBtn').click();
     }
   });
-  window.addEventListener('resize', () => { renderHome(); if (state.inDive) renderDive(); });
+  window.addEventListener('resize', () => {
+    if (state.view === 'home') renderHome();
+    if (state.view === 'dive') renderDive();
+  });
 }
 
 function loop(now) {
-  if (state.playing && state.inDive && state.sc) {
+  if (state.view === 'landing') {
+    state.scanPhase = (now * 0.00018) % 1;
+    const bars = document.querySelectorAll('.mcard-bar canvas');
+    state.manifest.forEach((item, idx) => {
+      const entry = state.scenarios[item.id];
+      const cv = bars[idx];
+      if (entry && cv) drawMiniBar(cv, entry.sc, entry.cache.v9m1.metrics.predAllRuns, (state.scanPhase + idx * 0.33) % 1);
+    });
+  } else if (state.playing && state.view === 'dive' && state.sc) {
     const dt = (now - state.lastTick) / 1000;
     state.lastTick = now;
-    state.frame += dt * state.sc.fps;
+    state.frame += dt * state.sc.fps * SPEEDS[state.speedIdx];
     if (state.frame >= state.sc.nFrames) state.frame = 0;
     renderDive();
   }

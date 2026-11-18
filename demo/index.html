@@ -9,9 +9,10 @@
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="app.css">
 </head>
-<body>
+<body class="view-landing">
 
-<main id="home">
+<!-- BEAT 1: Dynamic Overview (before entering a match) -->
+<section id="landing">
   <header class="top">
     <div class="logo">
       <svg viewBox="0 0 32 32" aria-hidden="true">
@@ -22,9 +23,83 @@
       v9m1
     </div>
     <div class="topr">
-      <button class="pill" id="matchBtn" title="Switch match clip"><i></i><span id="matchName">Loading…</span></button>
       <button class="icon-btn" id="infoBtn" title="How it works" aria-label="How it works">?</button>
       <a class="icon-btn" href="https://github.com/mark1u5/mtah-2027-possession-publication" target="_blank" rel="noopener" title="GitHub repository" aria-label="GitHub">↗</a>
+    </div>
+  </header>
+
+  <div class="lhero">
+    <h1>From noisy tracking<br><span>to possession spells.</span></h1>
+    <p class="sum">ATD tracking only · <b>TCN ±20 s</b> meets <b>physical contact rules</b> inside Viterbi · <b>0.701 Spell-F1</b> on 10 external matches.</p>
+  </div>
+
+  <div class="pipe-wrap">
+    <svg id="pipeSvg" viewBox="0 0 960 205" aria-label="v9m1 signal flow">
+      <defs>
+        <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+          <feGaussianBlur stdDeviation="3.5" result="b"/>
+          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+
+      <!-- Base paths -->
+      <path id="p-top-in"  d="M 155 102 C 225 102, 235 44, 310 44" class="flow-bg"/>
+      <path id="p-bot-in"  d="M 155 102 C 225 102, 235 160, 310 160" class="flow-bg"/>
+      <path id="p-top-out" d="M 485 44 C 555 44, 565 102, 625 102" class="flow-bg"/>
+      <path id="p-bot-out" d="M 485 160 C 555 160, 565 102, 625 102" class="flow-bg"/>
+      <path id="p-vit-out" d="M 795 102 L 850 102" class="flow-bg"/>
+
+      <!-- Animated flowing pulses -->
+      <path d="M 155 102 C 225 102, 235 44, 310 44" class="flow-pulse c-h"/>
+      <path d="M 155 102 C 225 102, 235 160, 310 160" class="flow-pulse c-p delay1"/>
+      <path d="M 485 44 C 555 44, 565 102, 625 102" class="flow-pulse c-h delay2"/>
+      <path d="M 485 160 C 555 160, 565 102, 625 102" class="flow-pulse c-p delay3"/>
+      <path d="M 795 102 L 850 102" class="flow-pulse c-ok delay4"/>
+
+      <!-- Nodes -->
+      <g class="pnode" data-note="Raw 25 fps positions · ball missing ~40% of frames · no video or Smart Tagging">
+        <rect x="16" y="70" width="139" height="64" rx="14"/>
+        <text x="85.5" y="96" class="pn-t">ATD Tracking</text>
+        <text x="85.5" y="116" class="pn-s">ball + 22 players</text>
+      </g>
+
+      <g class="pnode n-h" data-note="8 dilated residual blocks (±20 s context) · bridges long ball dropouts">
+        <rect x="310" y="12" width="175" height="64" rx="14"/>
+        <text x="397.5" y="38" class="pn-t">TCN v7d</text>
+        <text x="397.5" y="58" class="pn-s">±20 s neural context</text>
+      </g>
+
+      <g class="pnode n-p" data-note="Deterministic p3_notag rules + invariant contact confidence (κ ≤ 0.95)">
+        <rect x="310" y="128" width="175" height="64" rx="14"/>
+        <text x="397.5" y="154" class="pn-t">Rules + conf_fisica</text>
+        <text x="397.5" y="174" class="pn-s">dynamic weight w_t</text>
+      </g>
+
+      <g class="pnode n-ok" data-note="Decoupled min durations (s_P=1.0 live, s_D=0.25 dead) · eliminates flicker">
+        <rect x="625" y="70" width="170" height="64" rx="14"/>
+        <text x="710" y="96" class="pn-t">v9m1 Viterbi</text>
+        <text x="710" y="116" class="pn-s">decoupled HMM</text>
+      </g>
+
+      <g class="pnode n-out" data-note="Per-frame Home (H), Away (A), Dead (D), or X outside halves">
+        <rect x="850" y="70" width="94" height="64" rx="14"/>
+        <text x="897" y="96" class="pn-t">H / A / D</text>
+        <text x="897" y="116" class="pn-s">spells</text>
+      </g>
+    </svg>
+    <p class="pipe-note" id="pipeNote">Hover any stage to inspect · pick a match below to explore</p>
+  </div>
+
+  <div class="mgrid" id="matchGrid"></div>
+</section>
+
+<!-- BEAT 2: Match Possession Timeline -->
+<main id="home" hidden>
+  <header class="top">
+    <button class="back-inline" id="toLanding"><i>←</i><span>Overview</span></button>
+    <div class="topr">
+      <button class="pill" id="matchBtn" title="Switch match clip"><i></i><span id="matchName">Loading…</span></button>
+      <button class="icon-btn" id="infoBtn2" title="How it works" aria-label="How it works">?</button>
     </div>
   </header>
 
@@ -54,6 +129,7 @@
 
 <div class="card-tip" id="tip" hidden></div>
 
+<!-- BEAT 3: Auto-playing 2D Pitch + Live Decision + Scrolling ±20 s Trace -->
 <section class="full" id="full" hidden>
   <button class="back" id="back" aria-label="Back">
     <i>←</i>
@@ -67,7 +143,14 @@
     <span class="fverdict" id="fverdict">Matches GT</span>
   </div>
 
-  <p class="decision-line" id="decisionLine">&nbsp;</p>
+  <div class="decision-bar">
+    <p class="decision-line" id="decisionLine">&nbsp;</p>
+    <div class="wt-meter" title="Dynamic TCN weight w_t">
+      <span>TCN</span>
+      <div class="wt-track"><i id="wtFill"></i></div>
+      <span>Rules</span>
+    </div>
+  </div>
 
   <div class="pitch-stage">
     <canvas id="pitch"></canvas>
@@ -84,6 +167,7 @@
       <canvas id="scrub"></canvas>
     </div>
     <span class="fb-time" id="timeTxt">00:00</span>
+    <button class="fb-spd" id="speedBtn" title="Playback speed">1×</button>
     <div class="seg sm" id="diveSeg">
       <button class="on" data-m="v9m1">v9m1</button>
       <button data-m="tcn">TCN</button>
@@ -104,7 +188,7 @@
       <div><b>conf_fisica</b><span>Dynamic w_t</span></div>
       <div><b>Viterbi</b><span>0.701 Spell-F1</span></div>
     </div>
-    <p class="m-src">Open data: <a href="https://github.com/metrica-sports/sample-data" target="_blank" rel="noopener">Metrica Sports Sample Data</a> · <a href="https://github.com/mark1u5/mtah-2027-possession-publication" target="_blank" rel="noopener">Repository &amp; Paper</a></p>
+    <p class="m-src">Open sample data: <a href="https://github.com/metrica-sports/sample-data" target="_blank" rel="noopener">Metrica Sports Sample Data</a> (public anonymised matches, acknowledged per source guidelines) · <a href="https://github.com/mark1u5/mtah-2027-possession-publication" target="_blank" rel="noopener">Repository &amp; Paper</a></p>
   </div>
 </div>
 
