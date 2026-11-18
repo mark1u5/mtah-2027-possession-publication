@@ -47,17 +47,17 @@
         </filter>
       </defs>
 
-      <path d="M 155 102 C 225 102, 235 44, 310 44" class="flow-bg"/>
-      <path d="M 155 102 C 225 102, 235 160, 310 160" class="flow-bg"/>
-      <path d="M 485 44 C 555 44, 565 102, 625 102" class="flow-bg"/>
-      <path d="M 485 160 C 555 160, 565 102, 625 102" class="flow-bg"/>
-      <path d="M 795 102 L 850 102" class="flow-bg"/>
+      <path d="M 155 102 C 225 102, 235 44, 310 44" class="flow-bg" pathLength="100"/>
+      <path d="M 155 102 C 225 102, 235 160, 310 160" class="flow-bg" pathLength="100"/>
+      <path d="M 485 44 C 555 44, 565 102, 625 102" class="flow-bg" pathLength="100"/>
+      <path d="M 485 160 C 555 160, 565 102, 625 102" class="flow-bg" pathLength="100"/>
+      <path d="M 795 102 L 850 102" class="flow-bg" pathLength="100"/>
 
-      <path d="M 155 102 C 225 102, 235 44, 310 44" class="flow-pulse c-h"/>
-      <path d="M 155 102 C 225 102, 235 160, 310 160" class="flow-pulse c-p delay1"/>
-      <path d="M 485 44 C 555 44, 565 102, 625 102" class="flow-pulse c-h delay2"/>
-      <path d="M 485 160 C 555 160, 565 102, 625 102" class="flow-pulse c-p delay3"/>
-      <path d="M 795 102 L 850 102" class="flow-pulse c-ok delay4"/>
+      <path d="M 155 102 C 225 102, 235 44, 310 44" class="flow-pulse c-h flow-s1" pathLength="100"/>
+      <path d="M 155 102 C 225 102, 235 160, 310 160" class="flow-pulse c-p flow-s1" pathLength="100"/>
+      <path d="M 485 44 C 555 44, 565 102, 625 102" class="flow-pulse c-h flow-s2" pathLength="100"/>
+      <path d="M 485 160 C 555 160, 565 102, 625 102" class="flow-pulse c-p flow-s2" pathLength="100"/>
+      <path d="M 795 102 L 850 102" class="flow-pulse c-ok flow-s3" pathLength="100"/>
 
       <g class="pnode" data-note="Only raw player &amp; ball coordinates at 25 fps — no video, no human labels.">
         <rect x="16" y="70" width="139" height="64" rx="14"/>
@@ -156,7 +156,7 @@
 
   <div class="pitch-stage">
     <canvas id="pitch"></canvas>
-    <div class="drop-pill" id="dropPill" hidden>Ball missing from tracking · bridging from player movement</div>
+    <div class="drop-pill" id="dropPill">Ball missing from tracking · bridging from player movement</div>
   </div>
 
   <div class="sig-stage">
@@ -179,7 +179,7 @@
   </div>
 </section>
 
-<div class="modal" id="modal" hidden>
+<div class="modal" id="modal">
   <div class="sheet">
     <button class="x" id="mx" aria-label="Close">×</button>
     <h2>How the model works</h2>

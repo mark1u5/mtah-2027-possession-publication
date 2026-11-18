@@ -35,6 +35,7 @@ const state = {
   speedIdx: 0,
   scanPhase: 0,
   lastTick: 0,
+  wtDisplay: 1.0,
 };
 
 const $ = (id) => document.getElementById(id);
@@ -98,6 +99,13 @@ function drawMiniBar(canvas, sc, runs, pulseFrac) {
   if (canvas.width !== w) { canvas.width = w; canvas.height = h; }
   const ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, w, h);
+
+  ctx.save();
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(0, 0, w, h, 6);
+  else ctx.rect(0, 0, w, h);
+  ctx.clip();
+
   const T = sc.nFrames;
   for (const r of runs) {
     const x0 = (r.start / T) * w;
@@ -107,12 +115,18 @@ function drawMiniBar(canvas, sc, runs, pulseFrac) {
     ctx.fillRect(x0, 2, Math.max(1.5, x1 - x0 - 1), h - 4);
   }
   ctx.globalAlpha = 1;
-  const px = pulseFrac * w;
-  const g = ctx.createLinearGradient(px - 28, 0, px + 8, 0);
-  g.addColorStop(0, 'rgba(255,255,255,0)');
-  g.addColorStop(1, 'rgba(255,255,255,0.65)');
+
+  // Soft symmetric scanning sheen
+  const beamW = 48;
+  const px = pulseFrac * (w + beamW * 2) - beamW;
+  const g = ctx.createLinearGradient(px - beamW, 0, px + beamW, 0);
+  g.addColorStop(0, 'rgba(255, 255, 255, 0)');
+  g.addColorStop(0.5, 'rgba(255, 255, 255, 0.42)');
+  g.addColorStop(1, 'rgba(255, 255, 255, 0)');
   ctx.fillStyle = g;
-  ctx.fillRect(px - 28, 0, 36, h);
+  ctx.fillRect(px - beamW, 0, beamW * 2, h);
+
+  ctx.restore();
 }
 
 async function enterMatch(idx, ox = window.innerWidth / 2, oy = window.innerHeight / 2) {
@@ -124,16 +138,24 @@ async function enterMatch(idx, ox = window.innerWidth / 2, oy = window.innerHeig
   document.body.classList.add('to-home');
   setTimeout(() => {
     $('landing').hidden = true;
-    $('home').hidden = false;
+    const home = $('home');
+    home.hidden = false;
+    home.classList.remove('enter-anim');
+    void home.offsetWidth;
+    home.classList.add('enter-anim');
     document.body.classList.remove('to-home', 'view-landing');
     renderHome();
-  }, 320);
+  }, 380);
 }
 
 function backToLanding() {
   state.view = 'landing';
   $('home').hidden = true;
-  $('landing').hidden = false;
+  const landing = $('landing');
+  landing.hidden = false;
+  landing.classList.remove('enter-anim');
+  void landing.offsetWidth;
+  landing.classList.add('enter-anim');
   document.body.classList.add('view-landing');
 }
 
@@ -144,6 +166,7 @@ async function selectScenario(idx) {
   state.sc = sc;
   state.cache = cache;
   state.frame = findFirstHighlight();
+  state.wtDisplay = 1.0;
   $('matchName').textContent = item.title;
   $('diveTitle').textContent = item.title;
 }
@@ -330,7 +353,9 @@ function renderDive() {
 
   $('timeTxt').textContent = fmtTime(f);
   $('diveSub').textContent = `${fmtTime(f)} · ${NAMES[pred]}`;
-  $('dropPill').hidden = sig.bVis[f] === '1';
+
+  const dropPill = $('dropPill');
+  if (dropPill) dropPill.classList.toggle('visible', sig.bVis[f] === '0');
 
   const vEl = $('fverdict');
   vEl.textContent = agree ? 'Matches real play' : `Actual: ${NAMES[gt]}`;
@@ -341,8 +366,6 @@ function renderDive() {
   const tcnPct = Math.round(probs[tcnArg] / 10);
   const ruleCode = CODE_MAP[sig.rules[f]] ?? 2;
   const conf = sig.conf[f] * 0.001;
-  const wt = state.mode === 'tcn' ? 1.0 : (state.mode === 'rules' ? 0.0 : (state.cache.v9m1.wt ? state.cache.v9m1.wt[f] : 1.0));
-  $('wtFill').style.width = `${Math.round(wt * 100)}%`;
 
   let reason;
   if (state.mode === 'tcn') {
@@ -421,10 +444,15 @@ function drawPitch() {
     const px = interp(f0.p[k * 2], f1.p[k * 2]);
     const py = interp(f0.p[k * 2 + 1], f1.p[k * 2 + 1]);
     if (px == null || py == null) continue;
+    const cx = sx(px);
+    const cy = sy(py);
     ctx.beginPath();
-    ctx.arc(sx(px), sy(py), 6.2 * dpr, 0, Math.PI * 2);
+    ctx.arc(cx, cy, 6.2 * dpr, 0, Math.PI * 2);
     ctx.fillStyle = teams[k] === 0 ? COLORS[0] : COLORS[1];
     ctx.fill();
+    ctx.lineWidth = 1.2 * dpr;
+    ctx.strokeStyle = 'rgba(12, 12, 14, 0.7)';
+    ctx.stroke();
   }
 
   const fInt = Math.floor(state.frame);
@@ -433,34 +461,74 @@ function drawPitch() {
   const bx = interp(f0.b[0], f1.b[0]);
   const by = interp(f0.b[1], f1.b[1]);
 
-  ctx.beginPath();
-  let moved = false;
-  for (let back = 14; back >= 0; back--) {
-    const b = posArr[Math.max(0, i0 - back)].b;
-    if (b[0] == null || b[1] == null) { moved = false; continue; }
-    const x = sx(b[0] * 0.1);
-    const y = sy(b[1] * 0.1);
-    if (!moved) { ctx.moveTo(x, y); moved = true; } else ctx.lineTo(x, y);
+  // Refined comet-tail ball trail: quadratic alpha falloff & tapering width
+  const trail = [];
+  const trailLen = 16;
+  for (let back = trailLen; back >= 1; back--) {
+    const idx = Math.max(0, i0 - back);
+    const b = posArr[idx].b;
+    if (b[0] != null && b[1] != null) {
+      trail.push({ x: sx(b[0] * 0.1), y: sy(b[1] * 0.1) });
+    }
   }
-  if (bx != null && by != null && moved) ctx.lineTo(sx(bx), sy(by));
-  ctx.strokeStyle = 'rgba(255,255,255,0.28)';
-  ctx.lineWidth = 1.6 * dpr;
-  ctx.stroke();
+  if (bx != null && by != null) {
+    trail.push({ x: sx(bx), y: sy(by) });
+  }
+
+  if (trail.length >= 2) {
+    for (let i = 0; i < trail.length - 1; i++) {
+      const p1 = trail[i];
+      const p2 = trail[i + 1];
+      const distSq = (p2.x - p1.x) ** 2 + (p2.y - p1.y) ** 2;
+      if (distSq > (90 * dpr) ** 2) continue; // skip tracking teleport jumps
+
+      const frac = (i + 1) / (trail.length - 1);
+      ctx.beginPath();
+      ctx.moveTo(p1.x, p1.y);
+      ctx.lineTo(p2.x, p2.y);
+      ctx.strokeStyle = `rgba(255, 255, 255, ${(frac * frac * 0.42).toFixed(3)})`;
+      ctx.lineWidth = (0.7 + frac * 1.5) * dpr;
+      ctx.lineCap = 'round';
+      ctx.stroke();
+    }
+  }
 
   if (bx != null && by != null) {
+    const ballX = sx(bx);
+    const ballY = sy(by);
+
     if (conf > 0.08) {
+      // Gentle breathing pulse for active physical contact
+      const pulse = 1 + 0.06 * Math.sin(performance.now() * 0.008);
+      const rHalo = (11 + 10 * conf) * dpr * pulse;
+      const color = COLORS[pred];
+
+      // Soft ambient aura
       ctx.beginPath();
-      ctx.arc(sx(bx), sy(by), (12 + 11 * conf) * dpr, 0, Math.PI * 2);
-      ctx.strokeStyle = COLORS[pred];
-      ctx.globalAlpha = 0.28 + 0.52 * conf;
-      ctx.lineWidth = 2.2 * dpr;
+      ctx.arc(ballX, ballY, rHalo * 1.35, 0, Math.PI * 2);
+      ctx.strokeStyle = color;
+      ctx.globalAlpha = 0.12 + 0.22 * conf;
+      ctx.lineWidth = 1.2 * dpr;
+      ctx.stroke();
+
+      // Sharp contact ring
+      ctx.beginPath();
+      ctx.arc(ballX, ballY, rHalo, 0, Math.PI * 2);
+      ctx.strokeStyle = color;
+      ctx.globalAlpha = 0.35 + 0.55 * conf;
+      ctx.lineWidth = 2.0 * dpr;
       ctx.stroke();
       ctx.globalAlpha = 1;
     }
+
+    // Ball core with crisp contrast edge
     ctx.beginPath();
-    ctx.arc(sx(bx), sy(by), 5 * dpr, 0, Math.PI * 2);
+    ctx.arc(ballX, ballY, 5 * dpr, 0, Math.PI * 2);
     ctx.fillStyle = '#ffffff';
     ctx.fill();
+    ctx.lineWidth = 1.1 * dpr;
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.45)';
+    ctx.stroke();
   }
 }
 
@@ -542,6 +610,7 @@ function drawSignals() {
   }
   ctx.globalAlpha = 1;
 
+  // Touch confidence curve with soft neon glow
   ctx.beginPath();
   let pen = false;
   for (let f = f0; f <= f1; f += 2) {
@@ -550,17 +619,37 @@ function drawSignals() {
     const cy = rows[1].y + (1 - sig.conf[f] * 0.001) * (rows[1].rh - 4 * dpr) + 2 * dpr;
     if (!pen) { ctx.moveTo(x, cy); pen = true; } else ctx.lineTo(x, cy);
   }
+  ctx.save();
+  ctx.shadowColor = '#b7a4ff';
+  ctx.shadowBlur = 4 * dpr;
   ctx.strokeStyle = '#b7a4ff';
   ctx.lineWidth = 1.4 * dpr;
   ctx.stroke();
+  ctx.restore();
 
+  // Playhead line with precision diamond caps
   const cx = left + tw / 2;
-  ctx.strokeStyle = '#ffffff';
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
   ctx.lineWidth = 1.5 * dpr;
   ctx.beginPath();
   ctx.moveTo(cx, 2 * dpr);
   ctx.lineTo(cx, h - 2 * dpr);
   ctx.stroke();
+
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.moveTo(cx - 3.5 * dpr, 0);
+  ctx.lineTo(cx + 3.5 * dpr, 0);
+  ctx.lineTo(cx, 4.5 * dpr);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.moveTo(cx - 3.5 * dpr, h);
+  ctx.lineTo(cx + 3.5 * dpr, h);
+  ctx.lineTo(cx, h - 4.5 * dpr);
+  ctx.closePath();
+  ctx.fill();
 }
 
 function drawScrub() {
@@ -654,15 +743,16 @@ function bindUI() {
   });
   sigEl.addEventListener('pointerup', () => { sigDrag = false; });
 
-  const openModal = () => { $('modal').hidden = false; };
+  const openModal = () => $('modal').classList.add('open');
+  const closeModal = () => $('modal').classList.remove('open');
   $('infoBtn').addEventListener('click', openModal);
   $('infoBtn2').addEventListener('click', openModal);
-  $('mx').addEventListener('click', () => { $('modal').hidden = true; });
-  $('modal').addEventListener('click', (e) => { if (e.target === $('modal')) $('modal').hidden = true; });
+  $('mx').addEventListener('click', closeModal);
+  $('modal').addEventListener('click', (e) => { if (e.target === $('modal')) closeModal(); });
 
   window.addEventListener('keydown', (e) => {
     if (e.code === 'Escape') {
-      if (!$('modal').hidden) $('modal').hidden = true;
+      if ($('modal').classList.contains('open')) closeModal();
       else if (state.view === 'dive') closeDive();
       else if (state.view === 'home') backToLanding();
     } else if (state.view === 'dive' && e.code === 'Space') {
@@ -685,12 +775,22 @@ function loop(now) {
       const cv = bars[idx];
       if (entry && cv) drawMiniBar(cv, entry.sc, entry.cache.v9m1.metrics.predAllRuns, (state.scanPhase + idx * 0.33) % 1);
     });
-  } else if (state.playing && state.view === 'dive' && state.sc) {
-    const dt = Math.min(0.1, (now - state.lastTick) / 1000);
-    state.lastTick = now;
-    state.frame += dt * state.sc.fps * SPEEDS[state.speedIdx];
-    if (state.frame >= state.sc.nFrames) state.frame = 0;
-    renderDive();
+  } else if (state.view === 'dive' && state.sc) {
+    if (state.playing) {
+      const dt = Math.min(0.1, (now - state.lastTick) / 1000);
+      state.lastTick = now;
+      state.frame += dt * state.sc.fps * SPEEDS[state.speedIdx];
+      if (state.frame >= state.sc.nFrames) state.frame = 0;
+      renderDive();
+    }
+    // Smooth analog damping for wt meter
+    if (state.cache.v9m1) {
+      const fInt = Math.floor(state.frame);
+      const targetWt = state.mode === 'tcn' ? 1.0 : (state.mode === 'rules' ? 0.0 : (state.cache.v9m1.wt ? state.cache.v9m1.wt[fInt] : 1.0));
+      state.wtDisplay += (targetWt - state.wtDisplay) * 0.22;
+      const wtEl = $('wtFill');
+      if (wtEl) wtEl.style.width = `${(state.wtDisplay * 100).toFixed(1)}%`;
+    }
   }
   requestAnimationFrame(loop);
 }
