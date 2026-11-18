@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>El Chato · Ball Possession</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -165,18 +165,25 @@
   </div>
 
   <div class="fbar">
-    <button class="fb-btn" id="playBtn" aria-label="Play or pause">❚❚</button>
-    <div class="fb-scrub" id="scrubWrap">
-      <canvas id="scrub"></canvas>
+    <div class="fb-row fb-main">
+      <button class="fb-btn" id="playBtn" aria-label="Play or pause">❚❚</button>
+      <div class="fb-scrub" id="scrubWrap">
+        <canvas id="scrub"></canvas>
+      </div>
+      <span class="fb-time" id="timeTxt">00:00</span>
+      <button class="fb-spd" id="speedBtn" title="Playback speed">1×</button>
     </div>
-    <span class="fb-time" id="timeTxt">00:00</span>
-    <button class="fb-spd" id="speedBtn" title="Playback speed">1×</button>
-    <div class="seg sm" id="diveSeg">
-      <button class="on" data-m="v9m1">Combined</button>
-      <button data-m="tcn">Context</button>
-      <button data-m="rules">Physics</button>
+    <div class="fb-row fb-sub">
+      <div class="seg sm" id="diveSeg">
+        <button class="on" data-m="v9m1">Combined</button>
+        <button data-m="tcn">Context</button>
+        <button data-m="rules">Physics</button>
+      </div>
+      <button class="fb-next" id="nextBtn">
+        <span class="next-long">Next moment</span>
+        <span class="next-short">Next</span> →
+      </button>
     </div>
-    <button class="fb-next" id="nextBtn">Next moment →</button>
   </div>
 </section>
 

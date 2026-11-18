@@ -94,15 +94,17 @@ async function buildLandingCards() {
 }
 
 function drawMiniBar(canvas, sc, runs, pulseFrac) {
-  const w = 360;
-  const h = 14;
-  if (canvas.width !== w) { canvas.width = w; canvas.height = h; }
+  const rect = canvas.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  const w = Math.max(180, Math.floor((rect.width || 360) * dpr));
+  const h = Math.max(12, Math.floor((rect.height || 14) * dpr));
+  if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
   const ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, w, h);
 
   ctx.save();
   ctx.beginPath();
-  if (ctx.roundRect) ctx.roundRect(0, 0, w, h, 6);
+  if (ctx.roundRect) ctx.roundRect(0, 0, w, h, 6 * dpr);
   else ctx.rect(0, 0, w, h);
   ctx.clip();
 
@@ -112,12 +114,12 @@ function drawMiniBar(canvas, sc, runs, pulseFrac) {
     const x1 = (r.stop / T) * w;
     ctx.fillStyle = COLORS[r.code];
     ctx.globalAlpha = r.code === 2 ? 0.35 : 0.85;
-    ctx.fillRect(x0, 2, Math.max(1.5, x1 - x0 - 1), h - 4);
+    ctx.fillRect(x0, 2 * dpr, Math.max(1.5 * dpr, x1 - x0 - 1), h - 4 * dpr);
   }
   ctx.globalAlpha = 1;
 
   // Soft symmetric scanning sheen
-  const beamW = 48;
+  const beamW = 44 * dpr;
   const px = pulseFrac * (w + beamW * 2) - beamW;
   const g = ctx.createLinearGradient(px - beamW, 0, px + beamW, 0);
   g.addColorStop(0, 'rgba(255, 255, 255, 0)');
@@ -396,8 +398,8 @@ function drawPitch() {
   const canvas = $('pitch');
   const rect = canvas.getBoundingClientRect();
   const dpr = window.devicePixelRatio || 1;
-  const w = Math.max(300, Math.floor(rect.width * dpr));
-  const h = Math.max(200, Math.floor(rect.height * dpr));
+  const w = Math.max(160, Math.floor(rect.width * dpr));
+  const h = Math.max(120, Math.floor(rect.height * dpr));
   if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
   const ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, w, h);
@@ -537,13 +539,13 @@ function drawSignals() {
   if (!canvas) return;
   const rect = canvas.getBoundingClientRect();
   const dpr = window.devicePixelRatio || 1;
-  const w = Math.max(300, Math.floor(rect.width * dpr));
-  const h = Math.max(70, Math.floor(rect.height * dpr));
+  const w = Math.max(180, Math.floor(rect.width * dpr));
+  const h = Math.max(50, Math.floor(rect.height * dpr));
   if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
   const ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, w, h);
 
-  const left = 64 * dpr;
+  const left = Math.min(56 * dpr, Math.floor(w * 0.16));
   const tw = w - left - 4 * dpr;
   const T = state.sc.nFrames;
   const halfWin = 500;
@@ -553,13 +555,18 @@ function drawSignals() {
 
   const sig = state.sc.signals;
   const pred = active().pred;
+
+  const r0_h = Math.floor(h * 0.32);
+  const r1_h = Math.floor(h * 0.28);
+  const r2_h = Math.floor(h * 0.26);
+  const gap = Math.max(1, Math.floor((h - (r0_h + r1_h + r2_h)) / 4));
   const rows = [
-    { lbl: 'Context', y: 4 * dpr, rh: 26 * dpr },
-    { lbl: 'Physics', y: 36 * dpr, rh: 22 * dpr },
-    { lbl: 'Final', y: 64 * dpr, rh: 20 * dpr },
+    { lbl: 'Context', y: gap, rh: r0_h },
+    { lbl: 'Physics', y: gap * 2 + r0_h, rh: r1_h },
+    { lbl: 'Final', y: gap * 3 + r0_h + r1_h, rh: r2_h },
   ];
 
-  ctx.font = `500 ${10 * dpr}px "JetBrains Mono", monospace`;
+  ctx.font = `500 ${Math.max(7.5, 9.5 * (h / (84 * dpr))) * dpr}px "JetBrains Mono", monospace`;
   ctx.textBaseline = 'middle';
   rows.forEach((r) => {
     ctx.fillStyle = '#63636c';
