@@ -1,36 +1,34 @@
-import { CLASSES, CODE_MAP, decodeV9m1, evaluateMetrics } from './viterbi.js';
+import { CLASSES, CODE_MAP, decodeV9m1, evaluateMetrics, extractSpells } from './viterbi.js';
 
-const COLORS = {
-  H: '#8fd3ff',
-  A: '#f2a99f',
-  D: '#f3e2a6',
-  X: '#55555c',
-  0: '#8fd3ff',
-  1: '#f2a99f',
-  2: '#f3e2a6',
-  3: '#55555c',
+const COLORS = { 0: '#8fd3ff', 1: '#f2a99f', 2: '#f3e2a6', 3: '#55555c' };
+const NAMES = { 0: 'Home', 1: 'Away', 2: 'Dead ball', 3: 'Unknown' };
+const MODES = {
+  v9m1: (sc) => decodeV9m1(sc, sc.defaults).pred,
+  tcn: (sc) => {
+    const { pH, pA, pD } = sc.signals;
+    const out = new Uint8Array(sc.nFrames);
+    for (let i = 0; i < sc.nFrames; i++) {
+      out[i] = pH[i] >= pA[i] && pH[i] >= pD[i] ? 0 : (pA[i] >= pD[i] ? 1 : 2);
+    }
+    return out;
+  },
+  rules: (sc) => {
+    const r = sc.signals.rules;
+    const out = new Uint8Array(sc.nFrames);
+    for (let i = 0; i < sc.nFrames; i++) out[i] = CODE_MAP[r[i]] ?? 2;
+    return out;
+  },
 };
-
-const PRESETS = {
-  v9m1: { w: 1.0, factor: 0.35, lam: 0.25, s_P: 1.0, s_D: 0.25 },
-  v9: { w: 1.0, factor: 0.35, lam: 0.25, s_P: 1.0, s_D: 1.0 },
-  tcn: { w: 1.0, factor: 0.0, lam: 0.25, s_P: 1.0, s_D: 1.0 },
-  rules: { w: 0.0, factor: 0.0, lam: 0.25, s_P: 1.0, s_D: 0.25 },
-};
-
-const SPEEDS = [0.5, 1, 2, 4];
 
 const state = {
   manifest: [],
-  scenario: null,
-  cfg: { ...PRESETS.v9m1 },
-  baseSpellF1: 0,
-  decoded: null,
-  metrics: null,
+  scIdx: 0,
+  sc: null,
+  mode: 'v9m1',
+  cache: {},
   frame: 0,
   playing: false,
-  speedIdx: 1,
-  zoom: 1,
+  inDive: false,
   lastTick: 0,
 };
 
@@ -39,276 +37,273 @@ const $ = (id) => document.getElementById(id);
 async function init() {
   const res = await fetch('data/manifest.json');
   state.manifest = await res.json();
-
-  const nav = $('scenarios');
-  state.manifest.forEach((item, idx) => {
-    const btn = document.createElement('button');
-    btn.className = 'sc-btn' + (idx === 0 ? ' on' : '');
-    btn.textContent = item.title;
-    btn.dataset.id = item.id;
-    btn.addEventListener('click', () => loadScenario(item.id));
-    nav.appendChild(btn);
-  });
-
-  bindControls();
-  await loadScenario(state.manifest[0].id);
+  bindUI();
+  await loadScenario(0);
   requestAnimationFrame(loop);
 }
 
-async function loadScenario(id) {
-  document.querySelectorAll('.sc-btn').forEach((b) => b.classList.toggle('on', b.dataset.id === id));
-  const item = state.manifest.find((m) => m.id === id);
-  const res = await fetch(item.file);
-  state.scenario = await res.json();
-  state.frame = 0;
-  state.playing = false;
-  $('playBtn').textContent = '▶ Play';
-  $('scenarioDesc').textContent = `${item.subtitle} · ${state.scenario.source}`;
+async function loadScenario(idx) {
+  state.scIdx = idx % state.manifest.length;
+  const item = state.manifest[state.scIdx];
+  $('matchName').textContent = item.title;
+  $('diveTitle').textContent = item.title;
 
-  applyPreset('v9m1', false);
-  const baseDec = decodeV9m1(state.scenario, state.scenario.defaults);
-  state.baseSpellF1 = evaluateMetrics(state.scenario.signals.gt, baseDec.pred).spellF1;
-  recompute();
+  const res = await fetch(item.file);
+  state.sc = await res.json();
+  state.cache = {};
+  for (const m of Object.keys(MODES)) {
+    const pred = MODES[m](state.sc);
+    const metrics = evaluateMetrics(state.sc.signals.gt, pred);
+    state.cache[m] = { pred, metrics };
+  }
+  state.frame = findFirstHighlight();
+  renderHome();
+  if (state.inDive) renderDive();
 }
 
-function applyPreset(name, run = true) {
-  const p = PRESETS[name];
-  state.cfg = { ...p };
-  for (const k of Object.keys(p)) {
-    const sl = $('sl_' + k);
-    if (sl) {
-      sl.value = p[k];
-      $('val_' + k).textContent = Number(p[k]).toFixed(2);
+function active() {
+  return state.cache[state.mode];
+}
+
+function setMode(m) {
+  state.mode = m;
+  document.querySelectorAll('#modeSeg button, #diveSeg button').forEach((b) => {
+    b.classList.toggle('on', b.dataset.m === m);
+  });
+  renderHome();
+  if (state.inDive) renderDive();
+}
+
+function renderHome() {
+  if (!state.sc) return;
+  const { metrics } = active();
+  const label = state.mode === 'v9m1' ? 'v9m1' : (state.mode === 'tcn' ? 'TCN only' : 'Rules only');
+  const degNote = state.sc.degraded ? '40% missing ball tracking' : 'clean optical tracking';
+  $('sum').innerHTML =
+    `<b>${label}</b> scores <b>${metrics.spellF1.toFixed(3)} Spell-F1</b> across ` +
+    `<b>${metrics.nPredSpells}</b> possessions (truth: ${metrics.nGtSpells}) on ${degNote}. Click any spell to watch.`;
+
+  drawStream();
+}
+
+function drawStream() {
+  const svg = $('stream');
+  const W = Math.max(760, svg.clientWidth || 1000);
+  const H = 230;
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.innerHTML = '';
+
+  const T = state.sc.nFrames;
+  const xOf = (f) => (f / T) * W;
+  const ns = 'http://www.w3.org/2000/svg';
+  const el = (tag, attrs, parent = svg) => {
+    const n = document.createElementNS(ns, tag);
+    for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v);
+    parent.appendChild(n);
+    return n;
+  };
+
+  // Subtle labels on left edge
+  const addTag = (y, txt) => {
+    const t = el('text', { x: 0, y, fill: '#55555c', 'font-size': '10.5', 'font-family': 'JetBrains Mono, monospace' });
+    t.textContent = txt;
+  };
+  addTag(28, 'GROUND TRUTH');
+  addTag(82, state.mode.toUpperCase());
+  addTag(172, 'CONTACT CONFIDENCE');
+
+  // 1. Quiet Ground Truth reference strip (y = 38)
+  const gtRuns = active().metrics.gtAllRuns;
+  for (const r of gtRuns) {
+    el('rect', {
+      x: xOf(r.start).toFixed(1),
+      y: 38,
+      width: Math.max(1.5, xOf(r.stop) - xOf(r.start) - 1).toFixed(1),
+      height: 8,
+      rx: 4,
+      fill: COLORS[r.code],
+      opacity: r.code === 2 ? '0.28' : '0.42',
+    });
+  }
+
+  // 2. Main Interactive Prediction Spells (y = 94, tall clean capsules)
+  const predRuns = active().metrics.predAllRuns;
+  for (const r of predRuns) {
+    const x0 = xOf(r.start);
+    const x1 = xOf(r.stop);
+    const w = Math.max(2.5, x1 - x0 - 1.5);
+    const rect = el('rect', {
+      class: 'spell',
+      x: x0.toFixed(1),
+      y: 94,
+      width: w.toFixed(1),
+      height: 36,
+      rx: 7,
+      fill: COLORS[r.code],
+      opacity: r.code === 2 ? '0.45' : '0.92',
+    });
+
+    rect.addEventListener('mouseenter', (e) => showTip(e, r));
+    rect.addEventListener('mousemove', (e) => moveTip(e));
+    rect.addEventListener('mouseleave', () => { $('tip').hidden = true; });
+    rect.addEventListener('click', (e) => {
+      $('tip').hidden = true;
+      openDive(r.start, e.clientX, e.clientY);
+    });
+  }
+
+  // 3. Ball dropout dashes along baseline (y = 142)
+  const bVis = state.sc.signals.bVis;
+  let i = 0;
+  while (i < T) {
+    if (bVis[i] === '0') {
+      let j = i + 1;
+      while (j < T && bVis[j] === '0') j++;
+      if (j - i > 6) {
+        el('line', {
+          x1: xOf(i).toFixed(1),
+          y1: 142,
+          x2: xOf(j).toFixed(1),
+          y2: 142,
+          stroke: '#f3e2a6',
+          'stroke-width': '2',
+          'stroke-dasharray': '3 3',
+          opacity: '0.65',
+        });
+      }
+      i = j;
+    } else {
+      i++;
     }
   }
-  document.querySelectorAll('.preset').forEach((b) => b.classList.toggle('on', b.dataset.p === name));
-  if (run) recompute();
-}
 
-function recompute() {
-  if (!state.scenario) return;
-  const t0 = performance.now();
-  state.decoded = decodeV9m1(state.scenario, state.cfg);
-  state.metrics = evaluateMetrics(state.scenario.signals.gt, state.decoded.pred);
-  const dt = performance.now() - t0;
-
-  const m = state.metrics;
-  const delta = m.spellF1 - state.baseSpellF1;
-  const sign = delta >= 0 ? '+' : '';
-  $('kpiSpell').textContent = m.spellF1.toFixed(3);
-  const dEl = $('kpiSpellDelta');
-  dEl.textContent = `${sign}${delta.toFixed(3)} vs v9m1`;
-  dEl.className = Math.abs(delta) < 1e-4 ? '' : (delta > 0 ? 'delta-pos' : 'delta-neg');
-
-  $('kpiMacro').textContent = m.macroF1.toFixed(3);
-  $('kpiAcc').textContent = `Agreement ${(m.accuracy * 100).toFixed(1)}%`;
-  $('kpiSpells').textContent = `${m.nPredSpells} / ${m.nGtSpells}`;
-  $('kpiDead').textContent = `${m.deadPct.toFixed(1)}%`;
-  $('kpiRuntime').textContent = `Viterbi ${dt.toFixed(1)} ms`;
-
-  const mP = Math.max(1, Math.round(state.cfg.s_P * state.scenario.st.p5[0]));
-  const mD = Math.max(1, Math.round(state.cfg.s_D * state.scenario.st.p5[2]));
-  $('minLiveReadout').textContent = `H/A ≥ ${mP} frames (${(mP / 25).toFixed(2)} s)`;
-  $('minDeadReadout').textContent = `D ≥ ${mD} frames (${(mD / 25).toFixed(2)} s)`;
-
-  render();
-}
-
-function bindControls() {
-  for (const k of ['w', 'factor', 'lam', 's_P', 's_D']) {
-    $('sl_' + k).addEventListener('input', (e) => {
-      const val = parseFloat(e.target.value);
-      state.cfg[k] = val;
-      $('val_' + k).textContent = val.toFixed(2);
-      document.querySelectorAll('.preset').forEach((b) => b.classList.remove('on'));
-      recompute();
-    });
+  // 4. Delicate glowing contact confidence filament (y = 184..216)
+  const conf = state.sc.signals.conf;
+  const pts = [];
+  const step = 12;
+  for (let f = 0; f < T; f += step) {
+    const y = 214 - (conf[f] * 0.001) * 28;
+    pts.push(`${xOf(f).toFixed(1)},${y.toFixed(1)}`);
   }
-
-  document.querySelectorAll('.preset').forEach((b) => {
-    b.addEventListener('click', () => applyPreset(b.dataset.p));
+  el('polyline', {
+    fill: 'none',
+    stroke: '#b7a4ff',
+    'stroke-width': '1.4',
+    opacity: '0.55',
+    points: pts.join(' '),
   });
-  $('resetBtn').addEventListener('click', () => applyPreset('v9m1'));
-
-  $('playBtn').addEventListener('click', togglePlay);
-  $('backBtn').addEventListener('click', () => seek(state.frame - 125));
-  $('fwdBtn').addEventListener('click', () => seek(state.frame + 125));
-  $('speedBtn').addEventListener('click', () => {
-    state.speedIdx = (state.speedIdx + 1) % SPEEDS.length;
-    $('speedBtn').textContent = SPEEDS[state.speedIdx] + '×';
-  });
-
-  $('nextDropBtn').addEventListener('click', () => jumpNext((i) => state.scenario.signals.bVis[i] === '0'));
-  $('nextErrBtn').addEventListener('click', () => {
-    const gt = state.scenario.signals.gt;
-    const pred = state.decoded.pred;
-    jumpNext((i) => CODE_MAP[gt[i]] !== pred[i]);
-  });
-
-  document.querySelectorAll('.zbtn').forEach((b) => {
-    b.addEventListener('click', () => {
-      state.zoom = Number(b.dataset.z);
-      document.querySelectorAll('.zbtn').forEach((z) => z.classList.toggle('on', z === b));
-      drawTimeline();
-    });
-  });
-
-  // Timeline scrubbing & hover
-  const tc = $('timelineCanvas');
-  let dragging = false;
-  const xToFrame = (clientX) => {
-    const rect = tc.getBoundingClientRect();
-    const { winStart, winEnd } = visibleWindow();
-    const frac = Math.min(1, Math.max(0, (clientX - rect.left - 84) / (rect.width - 96)));
-    return Math.round(winStart + frac * (winEnd - winStart - 1));
-  };
-  tc.addEventListener('pointerdown', (e) => {
-    dragging = true;
-    tc.setPointerCapture(e.pointerId);
-    seek(xToFrame(e.clientX));
-  });
-  tc.addEventListener('pointermove', (e) => {
-    if (dragging) seek(xToFrame(e.clientX));
-    showTooltip(e);
-  });
-  tc.addEventListener('pointerup', () => { dragging = false; });
-  tc.addEventListener('pointerleave', () => { dragging = false; $('tip').hidden = true; });
-
-  // Modal & keyboard shortcuts
-  $('archBtn').addEventListener('click', () => { $('modal').hidden = false; });
-  $('modalClose').addEventListener('click', () => { $('modal').hidden = true; });
-  $('modal').addEventListener('click', (e) => { if (e.target === $('modal')) $('modal').hidden = true; });
-
-  window.addEventListener('keydown', (e) => {
-    if (e.target.tagName === 'INPUT') return;
-    if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
-    else if (e.code === 'ArrowLeft') seek(state.frame - 25);
-    else if (e.code === 'ArrowRight') seek(state.frame + 25);
-    else if (e.key === 'm' || e.key === 'M') $('nextErrBtn').click();
-    else if (e.key === 'Escape') $('modal').hidden = true;
-  });
-
-  window.addEventListener('resize', render);
 }
 
-function togglePlay() {
-  state.playing = !state.playing;
-  $('playBtn').textContent = state.playing ? '❚❚ Pause' : '▶ Play';
+function showTip(e, run) {
+  const dur = ((run.stop - run.start) / state.sc.fps).toFixed(1);
+  const t0 = fmtTime(run.start);
+  let dropFrames = 0;
+  for (let f = run.start; f < run.stop; f++) {
+    if (state.sc.signals.bVis[f] === '0') dropFrames++;
+  }
+  const dropTxt = dropFrames > 10 ? ` · ${Math.round((100 * dropFrames) / (run.stop - run.start))}% no ball` : '';
+  const tip = $('tip');
+  tip.innerHTML = `<b style="color:${COLORS[run.code]}">${NAMES[run.code]}</b> · ${dur} s<small>${t0}${dropTxt} · click to watch</small>`;
+  tip.hidden = false;
+  moveTip(e);
+}
+
+function moveTip(e) {
+  const tip = $('tip');
+  tip.style.left = Math.min(window.innerWidth - 220, e.clientX + 14) + 'px';
+  tip.style.top = Math.max(12, e.clientY - 52) + 'px';
+}
+
+function openDive(startFrame = state.frame, ox = window.innerWidth / 2, oy = window.innerHeight / 2) {
+  document.body.style.setProperty('--ox', `${ox}px`);
+  document.body.style.setProperty('--oy', `${oy}px`);
+  state.frame = startFrame;
+  state.inDive = true;
+  state.playing = true;
   state.lastTick = performance.now();
+  $('playBtn').textContent = '❚❚';
+
+  document.body.classList.add('dive');
+  const full = $('full');
+  full.hidden = false;
+  requestAnimationFrame(() => full.classList.add('on'));
+  renderDive();
 }
 
-function seek(f) {
-  if (!state.scenario) return;
-  state.frame = Math.max(0, Math.min(state.scenario.nFrames - 1, f));
-  render();
+function closeDive() {
+  state.playing = false;
+  state.inDive = false;
+  const full = $('full');
+  full.classList.remove('on');
+  document.body.classList.remove('dive');
+  setTimeout(() => { if (!state.inDive) full.hidden = true; }, 380);
 }
 
-function jumpNext(predicate) {
-  if (!state.scenario) return;
-  const T = state.scenario.nFrames;
-  let i = (state.frame + 10) % T;
-  // Skip current contiguous block if already inside one
-  while (i !== state.frame && predicate(i) && predicate((i - 1 + T) % T)) {
-    i = (i + 1) % T;
+function findFirstHighlight() {
+  const bVis = state.sc.signals.bVis;
+  for (let f = 150; f < state.sc.nFrames - 200; f++) {
+    if (bVis[f] === '0' && bVis[f + 25] === '0') return Math.max(0, f - 40);
   }
-  for (let step = 0; step < T; step++) {
-    const idx = (i + step) % T;
-    if (predicate(idx)) {
-      seek(idx);
+  return 0;
+}
+
+function nextHighlight() {
+  const T = state.sc.nFrames;
+  const bVis = state.sc.signals.bVis;
+  const conf = state.sc.signals.conf;
+  let f = (Math.floor(state.frame) + 75) % T;
+  for (let s = 0; s < T; s++) {
+    const idx = (f + s) % T;
+    if ((bVis[idx] === '0' && bVis[(idx + 15) % T] === '0') || conf[idx] > 780) {
+      state.frame = Math.max(0, idx - 30);
+      renderDive();
       return;
     }
   }
 }
 
-function visibleWindow() {
-  const T = state.scenario.nFrames;
-  if (state.zoom === 1) return { winStart: 0, winEnd: T };
-  const span = Math.round(T / state.zoom);
-  let winStart = Math.round(state.frame - span / 2);
-  winStart = Math.max(0, Math.min(T - span, winStart));
-  return { winStart, winEnd: winStart + span };
-}
-
-function loop(now) {
-  if (state.playing && state.scenario) {
-    const dt = (now - state.lastTick) / 1000;
-    state.lastTick = now;
-    const advance = dt * state.scenario.fps * SPEEDS[state.speedIdx];
-    state.frame += advance;
-    if (state.frame >= state.scenario.nFrames) state.frame = 0;
-    render();
-  }
-  requestAnimationFrame(loop);
-}
-
-function render() {
-  if (!state.scenario || !state.decoded) return;
+function renderDive() {
+  if (!state.sc) return;
   const f = Math.floor(state.frame);
-  const sig = state.scenario.signals;
-  const predCh = CLASSES[state.decoded.pred[f]];
-  const gtCh = sig.gt[f];
-  const ruleCh = sig.rules[f];
-  const conf = sig.conf[f] * 0.001;
-  const wt = state.decoded.wt[f];
-  const bVis = sig.bVis[f] === '1';
+  const pred = active().pred[f];
+  const gt = CODE_MAP[state.sc.signals.gt[f]] ?? 2;
+  const agree = pred === gt;
 
-  const sec = f / state.scenario.fps;
-  const mins = String(Math.floor(sec / 60)).padStart(2, '0');
-  const rem = (sec % 60).toFixed(1).padStart(4, '0');
-  $('clockReadout').textContent = `${mins}:${rem}`;
-  $('frameReadout').textContent = `frame ${f} / ${state.scenario.nFrames}`;
-  $('dropoutBadge').hidden = bVis;
+  $('timeTxt').textContent = fmtTime(f);
+  $('diveSub').textContent = `${fmtTime(f)} · ${NAMES[pred]}`;
+  $('dropPill').hidden = state.sc.signals.bVis[f] === '1';
 
-  const pH = (sig.pH[f] * 0.001).toFixed(2);
-  const pA = (sig.pA[f] * 0.001).toFixed(2);
-  const pD = (sig.pD[f] * 0.001).toFixed(2);
-  $('insTcn').textContent = `H ${pH} · A ${pA} · D ${pD}`;
-  $('insRule').textContent = ruleCh;
-  $('insRule').style.color = COLORS[ruleCh];
-  $('insConf').textContent = conf.toFixed(2);
-  $('insWt').textContent = wt.toFixed(2);
-  $('insPred').textContent = predCh;
-  $('insPred').style.color = COLORS[predCh];
-  $('insGt').textContent = gtCh;
-  $('insGt').style.color = COLORS[gtCh];
-
-  const agree = predCh === gtCh;
-  const vp = $('insVerdict');
-  vp.textContent = agree ? 'MATCHES GT' : 'MISMATCH';
-  vp.className = 'verdict-pill' + (agree ? '' : ' miss');
+  const vEl = $('fverdict');
+  vEl.textContent = agree ? 'Matches GT' : `GT: ${NAMES[gt]}`;
+  vEl.className = 'fverdict' + (agree ? '' : ' miss');
 
   drawPitch();
-  drawTimeline();
+  drawScrub();
 }
 
 function drawPitch() {
-  const canvas = $('pitchCanvas');
+  const canvas = $('pitch');
   const rect = canvas.getBoundingClientRect();
   const dpr = window.devicePixelRatio || 1;
   const w = Math.max(300, Math.floor(rect.width * dpr));
-  const h = Math.max(180, Math.floor(rect.height * dpr));
-  if (canvas.width !== w || canvas.height !== h) {
-    canvas.width = w;
-    canvas.height = h;
-  }
+  const h = Math.max(200, Math.floor(rect.height * dpr));
+  if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
   const ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, w, h);
 
-  const [L, W] = state.scenario.pitch;
-  const pad = 18 * dpr;
+  const [L, W] = state.sc.pitch;
+  const pad = 20 * dpr;
   const pw = w - pad * 2;
   const ph = h - pad * 2;
   const sx = (x) => pad + (x / L) * pw;
   const sy = (y) => pad + (y / W) * ph;
 
-  // Turf
-  ctx.fillStyle = '#12161a';
+  ctx.fillStyle = '#131417';
   ctx.fillRect(0, 0, w, h);
-  ctx.strokeStyle = 'rgba(255,255,255,0.14)';
+  ctx.strokeStyle = 'rgba(255,255,255,0.12)';
   ctx.lineWidth = 1.4 * dpr;
   ctx.strokeRect(pad, pad, pw, ph);
 
-  // Halfway, center circle, penalty boxes
   ctx.beginPath();
   ctx.moveTo(sx(L / 2), pad);
   ctx.lineTo(sx(L / 2), pad + ph);
@@ -318,230 +313,150 @@ function drawPitch() {
   ctx.arc(sx(L / 2), sy(W / 2), (9.15 / L) * pw, 0, Math.PI * 2);
   ctx.stroke();
 
-  const boxW = (16.5 / L) * pw;
-  const boxH = (40.32 / W) * ph;
-  ctx.strokeRect(pad, sy(W / 2) - boxH / 2, boxW, boxH);
-  ctx.strokeRect(pad + pw - boxW, sy(W / 2) - boxH / 2, boxW, boxH);
+  const bw = (16.5 / L) * pw;
+  const bh = (40.32 / W) * ph;
+  ctx.strokeRect(pad, sy(W / 2) - bh / 2, bw, bh);
+  ctx.strokeRect(pad + pw - bw, sy(W / 2) - bh / 2, bw, bh);
 
-  // Interpolated positions
-  const stride = state.scenario.stride;
-  const posArr = state.scenario.pos;
-  const exactIdx = state.frame / stride;
-  const i0 = Math.min(posArr.length - 1, Math.floor(exactIdx));
+  const stride = state.sc.stride;
+  const posArr = state.sc.pos;
+  const exact = state.frame / stride;
+  const i0 = Math.min(posArr.length - 1, Math.floor(exact));
   const i1 = Math.min(posArr.length - 1, i0 + 1);
-  const alpha = exactIdx - i0;
-
+  const alpha = exact - i0;
   const interp = (a, b) => (a == null ? null : b == null ? a : a + (b - a) * alpha) * 0.1;
 
   const f0 = posArr[i0];
   const f1 = posArr[i1];
-  const teams = state.scenario.teams;
-
-  // Players
-  const players = [];
+  const teams = state.sc.teams;
   for (let k = 0; k < teams.length; k++) {
     const px = interp(f0.p[k * 2], f1.p[k * 2]);
     const py = interp(f0.p[k * 2 + 1], f1.p[k * 2 + 1]);
     if (px == null || py == null) continue;
-    const isHome = teams[k] === 0;
-    players.push({ x: px, y: py, team: isHome ? 'H' : 'A' });
     ctx.beginPath();
-    ctx.arc(sx(px), sy(py), 6.2 * dpr, 0, Math.PI * 2);
-    ctx.fillStyle = isHome ? COLORS.H : COLORS.A;
+    ctx.arc(sx(px), sy(py), 6.5 * dpr, 0, Math.PI * 2);
+    ctx.fillStyle = teams[k] === 0 ? COLORS[0] : COLORS[1];
     ctx.fill();
-    ctx.lineWidth = 1.2 * dpr;
-    ctx.strokeStyle = '#0c0c0e';
-    ctx.stroke();
   }
 
-  // Ball trail (last ~2 seconds)
+  // Ball trail
   ctx.beginPath();
-  let started = false;
-  for (let back = 18; back >= 0; back--) {
-    const bi = Math.max(0, i0 - back);
-    const b = posArr[bi].b;
-    if (b[0] == null || b[1] == null) { started = false; continue; }
+  let moved = false;
+  for (let back = 14; back >= 0; back--) {
+    const b = posArr[Math.max(0, i0 - back)].b;
+    if (b[0] == null || b[1] == null) { moved = false; continue; }
     const x = sx(b[0] * 0.1);
     const y = sy(b[1] * 0.1);
-    if (!started) { ctx.moveTo(x, y); started = true; }
-    else ctx.lineTo(x, y);
+    if (!moved) { ctx.moveTo(x, y); moved = true; } else ctx.lineTo(x, y);
   }
   ctx.strokeStyle = 'rgba(255,255,255,0.28)';
   ctx.lineWidth = 1.6 * dpr;
   ctx.stroke();
 
-  // Ball & physical contact ring
   const fInt = Math.floor(state.frame);
-  const conf = state.scenario.signals.conf[fInt] * 0.001;
-  const predCode = state.decoded.pred[fInt];
+  const conf = state.sc.signals.conf[fInt] * 0.001;
+  const pred = active().pred[fInt];
   const bx = interp(f0.b[0], f1.b[0]);
   const by = interp(f0.b[1], f1.b[1]);
-
   if (bx != null && by != null) {
-    if (conf > 0.05) {
+    if (conf > 0.08) {
       ctx.beginPath();
-      ctx.arc(sx(bx), sy(by), (11 + 12 * conf) * dpr, 0, Math.PI * 2);
-      ctx.strokeStyle = COLORS[predCode];
-      ctx.globalAlpha = 0.25 + 0.55 * conf;
+      ctx.arc(sx(bx), sy(by), (12 + 11 * conf) * dpr, 0, Math.PI * 2);
+      ctx.strokeStyle = COLORS[pred];
+      ctx.globalAlpha = 0.28 + 0.52 * conf;
       ctx.lineWidth = 2.2 * dpr;
       ctx.stroke();
       ctx.globalAlpha = 1;
     }
     ctx.beginPath();
-    ctx.arc(sx(bx), sy(by), 4.8 * dpr, 0, Math.PI * 2);
+    ctx.arc(sx(bx), sy(by), 5 * dpr, 0, Math.PI * 2);
     ctx.fillStyle = '#ffffff';
     ctx.fill();
-    ctx.lineWidth = 1.5 * dpr;
-    ctx.strokeStyle = COLORS[predCode];
-    ctx.stroke();
-  } else {
-    // Ball dropout marker in corner
-    ctx.fillStyle = 'rgba(243, 226, 166, 0.9)';
-    ctx.font = `600 ${11 * dpr}px "JetBrains Mono", monospace`;
-    ctx.fillText('NO BALL TRACKING · TCN + KINEMATICS BRIDGING GAP', pad + 10 * dpr, pad + 18 * dpr);
   }
 }
 
-function drawTimeline() {
-  const canvas = $('timelineCanvas');
+function drawScrub() {
+  const canvas = $('scrub');
   const rect = canvas.getBoundingClientRect();
   const dpr = window.devicePixelRatio || 1;
-  const w = Math.max(400, Math.floor(rect.width * dpr));
-  const h = Math.max(180, Math.floor(rect.height * dpr));
-  if (canvas.width !== w || canvas.height !== h) {
-    canvas.width = w;
-    canvas.height = h;
-  }
+  const w = Math.max(120, Math.floor(rect.width * dpr));
+  const h = Math.max(16, Math.floor(rect.height * dpr));
+  if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
   const ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, w, h);
 
-  const left = 84 * dpr;
-  const right = w - 12 * dpr;
-  const tw = right - left;
-  const { winStart, winEnd } = visibleWindow();
-  const span = winEnd - winStart;
-  const fToX = (f) => left + ((f - winStart) / span) * tw;
-
-  const sig = state.scenario.signals;
-  const pred = state.decoded.pred;
-
-  const rows = [
-    { label: 'TCN v7d', y: 12 * dpr, rh: 44 * dpr },
-    { label: 'Rules + conf', y: 66 * dpr, rh: 36 * dpr },
-    { label: 'v9m1 Viterbi', y: 112 * dpr, rh: 36 * dpr },
-    { label: 'Ground Truth', y: 158 * dpr, rh: 36 * dpr },
-  ];
-
-  ctx.font = `500 ${10.5 * dpr}px "JetBrains Mono", monospace`;
-  ctx.textBaseline = 'middle';
-
-  // Row labels
-  rows.forEach((r) => {
-    ctx.fillStyle = '#9898a0';
-    ctx.fillText(r.label, 6 * dpr, r.y + r.rh / 2);
-    ctx.fillStyle = '#1b1b1f';
-    ctx.fillRect(left, r.y, tw, r.rh);
-  });
-
-  // Track 1: TCN stacked probabilities (sampled per pixel)
-  const r0 = rows[0];
-  const pxW = Math.max(1, Math.floor(tw));
-  for (let px = 0; px < pxW; px++) {
-    const f = Math.min(winEnd - 1, Math.floor(winStart + (px / pxW) * span));
-    const hH = (sig.pH[f] * 0.001) * r0.rh;
-    const hA = (sig.pA[f] * 0.001) * r0.rh;
-    const hD = r0.rh - hH - hA;
-    const x = left + px;
-    ctx.fillStyle = 'rgba(143,211,255,0.85)';
-    ctx.fillRect(x, r0.y, 1.5, hH);
-    ctx.fillStyle = 'rgba(242,169,159,0.85)';
-    ctx.fillRect(x, r0.y + hH, 1.5, hA);
-    ctx.fillStyle = 'rgba(243,226,166,0.68)';
-    ctx.fillRect(x, r0.y + hH + hA, 1.5, hD);
-  }
-
-  // Track 2: Rules step + conf_fisica line + ball dropout ticks
-  const r1 = rows[1];
-  for (let px = 0; px < pxW; px++) {
-    const f = Math.min(winEnd - 1, Math.floor(winStart + (px / pxW) * span));
-    const ch = sig.rules[f];
-    ctx.fillStyle = COLORS[ch];
-    ctx.globalAlpha = 0.45;
-    ctx.fillRect(left + px, r1.y + r1.rh * 0.55, 1.5, r1.rh * 0.45);
-    if (sig.bVis[f] === '0') {
-      ctx.fillStyle = '#f3e2a6';
-      ctx.globalAlpha = 0.9;
-      ctx.fillRect(left + px, r1.y, 1.5, 3 * dpr);
-    }
+  const T = state.sc.nFrames;
+  for (const r of active().metrics.predAllRuns) {
+    const x0 = (r.start / T) * w;
+    const x1 = (r.stop / T) * w;
+    ctx.fillStyle = COLORS[r.code];
+    ctx.globalAlpha = r.code === 2 ? 0.35 : 0.78;
+    ctx.fillRect(x0, 5 * dpr, Math.max(1.5, x1 - x0 - 1), h - 10 * dpr);
   }
   ctx.globalAlpha = 1;
-  ctx.beginPath();
-  for (let px = 0; px < pxW; px += 2) {
-    const f = Math.min(winEnd - 1, Math.floor(winStart + (px / pxW) * span));
-    const cy = r1.y + (1 - sig.conf[f] * 0.001) * (r1.rh - 6 * dpr) + 3 * dpr;
-    if (px === 0) ctx.moveTo(left + px, cy);
-    else ctx.lineTo(left + px, cy);
-  }
-  ctx.strokeStyle = '#ffffff';
-  ctx.lineWidth = 1.3 * dpr;
-  ctx.stroke();
-
-  // Track 3 & 4: Spells for v9m1 and GT
-  const drawRuns = (runs, row) => {
-    for (const run of runs) {
-      if (run.stop <= winStart || run.start >= winEnd) continue;
-      const a = Math.max(winStart, run.start);
-      const b = Math.min(winEnd, run.stop);
-      const x0 = fToX(a);
-      const x1 = fToX(b);
-      ctx.fillStyle = COLORS[run.code];
-      ctx.globalAlpha = run.code === 2 ? 0.52 : 0.88;
-      ctx.fillRect(x0, row.y + 2 * dpr, Math.max(1.5, x1 - x0 - 1), row.rh - 4 * dpr);
-    }
-    ctx.globalAlpha = 1;
-  };
-  drawRuns(state.metrics.predAllRuns, rows[2]);
-  drawRuns(state.metrics.gtAllRuns, rows[3]);
-
-  // Mismatch strip beneath GT
-  for (let px = 0; px < pxW; px++) {
-    const f = Math.min(winEnd - 1, Math.floor(winStart + (px / pxW) * span));
-    if (CODE_MAP[sig.gt[f]] !== pred[f]) {
-      ctx.fillStyle = '#f2a99f';
-      ctx.fillRect(left + px, rows[3].y + rows[3].rh + 2 * dpr, 1.5, 3 * dpr);
-    }
-  }
-
-  // Playhead
-  const pxCur = fToX(state.frame);
-  ctx.strokeStyle = '#ffffff';
-  ctx.lineWidth = 1.6 * dpr;
-  ctx.beginPath();
-  ctx.moveTo(pxCur, 6 * dpr);
-  ctx.lineTo(pxCur, h - 10 * dpr);
-  ctx.stroke();
+  const px = (state.frame / T) * w;
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(px - 1.5 * dpr, 1 * dpr, 3 * dpr, h - 2 * dpr);
 }
 
-function showTooltip(e) {
-  if (!state.scenario || !state.decoded) return;
-  const tc = $('timelineCanvas');
-  const rect = tc.getBoundingClientRect();
-  const relX = e.clientX - rect.left;
-  if (relX < 84 || relX > rect.width - 12) { $('tip').hidden = true; return; }
-  const { winStart, winEnd } = visibleWindow();
-  const f = Math.round(winStart + ((relX - 84) / (rect.width - 96)) * (winEnd - winStart - 1));
-  const sig = state.scenario.signals;
-  const pred = CLASSES[state.decoded.pred[f]];
-  const gt = sig.gt[f];
-  const rule = sig.rules[f];
-  const sec = (f / 25).toFixed(1);
-  const tip = $('tip');
-  tip.innerHTML =
-    `t=${sec}s (f ${f}) · <b>Pred: ${pred}</b> vs GT: ${gt}<br>` +
-    `TCN H ${(sig.pH[f]/10).toFixed(0)}% A ${(sig.pA[f]/10).toFixed(0)}% D ${(sig.pD[f]/10).toFixed(0)}% · Rule: ${rule} · w_t: ${state.decoded.wt[f].toFixed(2)}`;
-  tip.style.left = Math.min(rect.width - 280, Math.max(8, relX + 12)) + 'px';
-  tip.style.top = '8px';
-  tip.hidden = false;
+function fmtTime(f) {
+  const sec = Math.floor(f / (state.sc?.fps || 25));
+  return `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`;
+}
+
+function bindUI() {
+  $('matchBtn').addEventListener('click', () => loadScenario(state.scIdx + 1));
+  $('openDive').addEventListener('click', (e) => openDive(state.frame, e.clientX, e.clientY));
+  $('back').addEventListener('click', closeDive);
+
+  document.querySelectorAll('#modeSeg button, #diveSeg button').forEach((b) => {
+    b.addEventListener('click', () => setMode(b.dataset.m));
+  });
+
+  $('playBtn').addEventListener('click', () => {
+    state.playing = !state.playing;
+    state.lastTick = performance.now();
+    $('playBtn').textContent = state.playing ? '❚❚' : '▶';
+  });
+  $('nextBtn').addEventListener('click', nextHighlight);
+
+  const sw = $('scrubWrap');
+  let drag = false;
+  const seekEv = (e) => {
+    const rect = sw.getBoundingClientRect();
+    const frac = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
+    state.frame = Math.round(frac * (state.sc.nFrames - 1));
+    renderDive();
+  };
+  sw.addEventListener('pointerdown', (e) => { drag = true; sw.setPointerCapture(e.pointerId); seekEv(e); });
+  sw.addEventListener('pointermove', (e) => { if (drag) seekEv(e); });
+  sw.addEventListener('pointerup', () => { drag = false; });
+
+  $('infoBtn').addEventListener('click', () => { $('modal').hidden = false; });
+  $('mx').addEventListener('click', () => { $('modal').hidden = true; });
+  $('modal').addEventListener('click', (e) => { if (e.target === $('modal')) $('modal').hidden = true; });
+
+  window.addEventListener('keydown', (e) => {
+    if (e.code === 'Escape') {
+      if (!$('modal').hidden) $('modal').hidden = true;
+      else if (state.inDive) closeDive();
+    } else if (state.inDive && e.code === 'Space') {
+      e.preventDefault();
+      $('playBtn').click();
+    }
+  });
+  window.addEventListener('resize', () => { renderHome(); if (state.inDive) renderDive(); });
+}
+
+function loop(now) {
+  if (state.playing && state.inDive && state.sc) {
+    const dt = (now - state.lastTick) / 1000;
+    state.lastTick = now;
+    state.frame += dt * state.sc.fps;
+    if (state.frame >= state.sc.nFrames) state.frame = 0;
+    renderDive();
+  }
+  requestAnimationFrame(loop);
 }
 
 init();
